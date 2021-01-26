@@ -36,6 +36,9 @@
 @property (nonatomic, assign) BOOL isUsingPixelBufferRenderer;
 @property (nonatomic, assign) BOOL isUsingOptimizedTwoSimulcastStreamTable;
 @property (nonatomic, assign) BOOL isContentShare;
+@property (nonatomic, assign) BOOL isExcludeSelfContentInIndex;
+@property (nonatomic, assign) NSString* audioHostUrl;
+@property (nonatomic, assign) BOOL isUsingInbandTurnCreds;
 @end
 
 @interface DataMessageInternal : NSObject
@@ -75,6 +78,13 @@
 
 // Set the dynamic media client config whenever it is passed down from application
 + (void)setMediaClientConfig:(NSString*)configStr;
+
+- (void)start:(NSString*)callId
+            token:(NSString*)token
+          sending:(BOOL)sending
+           config:(VideoConfiguration*)config
+          appInfo:(app_detailed_info_t)appInfo
+     signalingUrl:(NSString*)signalingUrl;
 
 - (void)start:(NSString*)callId
             token:(NSString*)token
@@ -164,6 +174,8 @@
 - (void)videoClientMetricsReceived:(NSDictionary*)metrics;
 
 - (void)videoClientDataMessageReceived:(NSArray<DataMessageInternal*>*)message;
+
+- (NSArray<NSString*>*)videoClientTurnURIsReceived:(NSArray<NSString*>*)uris;
 @end
 
 #endif /* VideoClient_sdk_h */

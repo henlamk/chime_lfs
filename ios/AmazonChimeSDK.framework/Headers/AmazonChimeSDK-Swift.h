@@ -445,6 +445,38 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK26AudioVideoControllerFacade_")
 - (void)removeMetricsObserverWithObserver:(id <MetricsObserver> _Nonnull)observer;
 @end
 
+@class ContentShareSource;
+@protocol ContentShareObserver;
+
+/// <code>ContentShareController</code> exposes methods for starting and stopping content share with a <code>ContentShareSource</code>.
+/// The content represents a media steam to be shared in the meeting, such as screen capture or media files.
+/// Please refer to <a href="https://github.com/aws/amazon-chime-sdk-ios/blob/master/guides/content_share.md">content share guide</a> for details.
+SWIFT_PROTOCOL("_TtP14AmazonChimeSDK22ContentShareController_")
+@protocol ContentShareController
+/// Start sharing the content of a given <code>ContentShareSource</code>.
+/// Once sharing has started successfully, <code>ContentShareObserver.contentShareDidStart</code> will
+/// be notified. If sharing fails or stops, <code>ContentShareObserver.contentShareDidStop</code>
+/// will be invoked with <code>ContentShareStatus</code> as the cause.
+/// This will call <code>VideoSource.addVideoSink(sink:)</code> on the provided source
+/// and <code>VideoSource.removeVideoSink(sink:)</code> on the previously provided source.
+/// Calling this function repeatedly will replace the previous <code>ContentShareSource</code> as the one being transmitted.
+/// \param source source of content to be shared
+///
+- (void)startContentShareWithSource:(ContentShareSource * _Nonnull)source;
+/// Stop sharing the content of a <code>ContentShareSource</code> that previously started.
+/// Once the sharing stops successfully, <code>ContentShareObserver.contentShareDidStop</code>
+/// will be invoked with status code <code>ContentShareStatusCode.OK</code>.
+- (void)stopContentShare;
+/// Subscribe the given observer to content share events (sharing started and stopped).
+/// \param observer observer to be notified for events
+///
+- (void)addContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+/// Unsubscribe the given observer from content share events.
+/// \param observer observer to be removed for events
+///
+- (void)removeContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+@end
+
 @protocol VideoRenderView;
 @protocol VideoTileObserver;
 
@@ -593,7 +625,7 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK24RealtimeControllerFacade_")
 
 
 SWIFT_PROTOCOL("_TtP14AmazonChimeSDK16AudioVideoFacade_")
-@protocol AudioVideoFacade <ActiveSpeakerDetectorFacade, AudioVideoControllerFacade, DeviceController, RealtimeControllerFacade, VideoTileControllerFacade>
+@protocol AudioVideoFacade <ActiveSpeakerDetectorFacade, AudioVideoControllerFacade, ContentShareController, DeviceController, RealtimeControllerFacade, VideoTileControllerFacade>
 @end
 
 @class MeetingSessionStatus;
@@ -748,6 +780,7 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK22ClientMetricsCollector_")
 @protocol ClientMetricsCollector
 - (void)processAudioClientMetricsWithMetrics:(NSDictionary * _Nonnull)metrics;
 - (void)processVideoClientMetricsWithMetrics:(NSDictionary * _Nonnull)metrics;
+- (void)processContentShareVideoClientMetricsWithMetrics:(NSDictionary * _Nonnull)metrics;
 - (void)subscribeToMetricsWithObserver:(id <MetricsObserver> _Nonnull)observer;
 - (void)unsubscribeFromMetricsWithObserver:(id <MetricsObserver> _Nonnull)observer;
 @end
@@ -804,6 +837,62 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK13ConsoleLogger")
 - (enum LogLevel)getLogLevel SWIFT_WARN_UNUSED_RESULT;
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+
+@class ContentShareStatus;
+
+/// <code>ContentShareObserver</code> handles all callbacks related to the content share.
+/// By implementing the callback functions and registering with <code>ContentShareController.addContentShareObserver</code>,
+/// one can get notified with content share status events.
+SWIFT_PROTOCOL("_TtP14AmazonChimeSDK20ContentShareObserver_")
+@protocol ContentShareObserver
+/// Called when the content share has started.
+/// Note: this callback will be called on main thread.
+- (void)contentShareDidStart;
+/// Called when the content is no longer shared with other attendees with the reason provided in the status.
+/// If you no longer need the source producing frames, stop the source after this callback is invoked.
+/// Note: this callback will be called on main thread.
+/// \param status the reason why the content share has stopped
+///
+- (void)contentShareDidStopWithStatus:(ContentShareStatus * _Nonnull)status;
+@end
+
+
+/// <code>ContentShareSource</code> contains the media sources to attach to the content share
+SWIFT_CLASS("_TtC14AmazonChimeSDK18ContentShareSource")
+@interface ContentShareSource : NSObject
+@property (nonatomic, strong) id <VideoSource> _Nullable videoSource;
+- (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
+@end
+
+enum ContentShareStatusCode : NSInteger;
+
+/// <code>ContentShareStatus</code> indicates a status received regarding the content share.
+SWIFT_CLASS("_TtC14AmazonChimeSDK18ContentShareStatus")
+@interface ContentShareStatus : NSObject
+@property (nonatomic, readonly) enum ContentShareStatusCode statusCode;
+- (nonnull instancetype)initWithStatusCode:(enum ContentShareStatusCode)statusCode OBJC_DESIGNATED_INITIALIZER;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+/// <code>ContentShareStatusCode</code> indicates the reason the content share event occurred.
+typedef SWIFT_ENUM(NSInteger, ContentShareStatusCode, open) {
+/// No failure.
+  ContentShareStatusCodeOk = 0,
+/// This can happen when the content share video connection is in an unrecoverable failed state.
+/// Restart content share connection when this error is encountered.
+  ContentShareStatusCodeVideoServiceFailed = 1,
+};
+
+
+SWIFT_PROTOCOL("_TtP14AmazonChimeSDK33ContentShareVideoClientController_")
+@protocol ContentShareVideoClientController
+- (void)startVideoShareWithSource:(id <VideoSource> _Nonnull)source;
+- (void)stopVideoShare;
+- (void)subscribeToVideoClientStateChangeWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (void)unsubscribeFromVideoClientStateChangeWithObserver:(id <ContentShareObserver> _Nonnull)observer;
 @end
 
 
@@ -985,7 +1074,7 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK23DefaultAudioVideoFacade")
 @interface DefaultAudioVideoFacade : NSObject <AudioVideoFacade>
 @property (nonatomic, readonly, strong) MeetingSessionConfiguration * _Nonnull configuration;
 @property (nonatomic, readonly, strong) id <Logger> _Nonnull logger;
-- (nonnull instancetype)initWithAudioVideoController:(id <AudioVideoControllerFacade> _Nonnull)audioVideoController realtimeController:(id <RealtimeControllerFacade> _Nonnull)realtimeController deviceController:(id <DeviceController> _Nonnull)deviceController videoTileController:(id <VideoTileController> _Nonnull)videoTileController activeSpeakerDetector:(id <ActiveSpeakerDetectorFacade> _Nonnull)activeSpeakerDetector OBJC_DESIGNATED_INITIALIZER;
+- (nonnull instancetype)initWithAudioVideoController:(id <AudioVideoControllerFacade> _Nonnull)audioVideoController realtimeController:(id <RealtimeControllerFacade> _Nonnull)realtimeController deviceController:(id <DeviceController> _Nonnull)deviceController videoTileController:(id <VideoTileController> _Nonnull)videoTileController activeSpeakerDetector:(id <ActiveSpeakerDetectorFacade> _Nonnull)activeSpeakerDetector contentShareController:(id <ContentShareController> _Nonnull)contentShareController OBJC_DESIGNATED_INITIALIZER;
 - (BOOL)startWithCallKitEnabled:(BOOL)callKitEnabled error:(NSError * _Nullable * _Nullable)error;
 - (BOOL)startAndReturnError:(NSError * _Nullable * _Nullable)error;
 - (void)stop;
@@ -1023,6 +1112,10 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK23DefaultAudioVideoFacade")
 - (void)removeActiveSpeakerObserverWithObserver:(id <ActiveSpeakerObserver> _Nonnull)observer;
 - (void)hasBandwidthPriorityCallbackWithHasBandwidthPriority:(BOOL)hasBandwidthPriority;
 - (MediaDevice * _Nullable)getActiveAudioDevice SWIFT_WARN_UNUSED_RESULT;
+- (void)startContentShareWithSource:(ContentShareSource * _Nonnull)source;
+- (void)stopContentShare;
+- (void)addContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (void)removeContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
 @end
@@ -1051,6 +1144,42 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK26DefaultCameraCaptureSource")
 
 @interface DefaultCameraCaptureSource (SWIFT_EXTENSION(AmazonChimeSDK)) <AVCaptureVideoDataOutputSampleBufferDelegate>
 - (void)captureOutput:(AVCaptureOutput * _Nonnull)_ didOutputSampleBuffer:(CMSampleBufferRef _Nonnull)sampleBuffer fromConnection:(AVCaptureConnection * _Nonnull)_;
+@end
+
+
+SWIFT_CLASS("_TtC14AmazonChimeSDK29DefaultContentShareController")
+@interface DefaultContentShareController : NSObject <ContentShareController>
+- (nonnull instancetype)initWithContentShareVideoClientController:(id <ContentShareVideoClientController> _Nonnull)contentShareVideoClientController OBJC_DESIGNATED_INITIALIZER;
+- (void)startContentShareWithSource:(ContentShareSource * _Nonnull)source;
+- (void)stopContentShare;
+- (void)addContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (void)removeContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+@protocol VideoClientProtocol;
+
+SWIFT_CLASS("_TtC14AmazonChimeSDK40DefaultContentShareVideoClientController")
+@interface DefaultContentShareVideoClientController : NSObject <ContentShareVideoClientController>
+- (nonnull instancetype)initWithVideoClient:(id <VideoClientProtocol> _Nonnull)videoClient configuration:(MeetingSessionConfiguration * _Nonnull)configuration logger:(id <Logger> _Nonnull)logger clientMetricsCollector:(id <ClientMetricsCollector> _Nonnull)clientMetricsCollector OBJC_DESIGNATED_INITIALIZER;
+- (void)startVideoShareWithSource:(id <VideoSource> _Nonnull)source;
+- (void)stopVideoShare;
+- (void)subscribeToVideoClientStateChangeWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (void)unsubscribeFromVideoClientStateChangeWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+@class VideoClient;
+
+@interface DefaultContentShareVideoClientController (SWIFT_EXTENSION(AmazonChimeSDK)) <VideoClientDelegate>
+- (void)videoClientRequestTurnCreds:(VideoClient * _Nullable)client;
+- (void)videoClientIsConnecting:(VideoClient * _Nullable)client;
+- (void)videoClientDidConnect:(VideoClient * _Nullable)client controlStatus:(int32_t)controlStatus;
+- (void)videoClientDidFail:(VideoClient * _Nullable)client status:(video_client_status_t)status controlStatus:(int32_t)controlStatus;
+- (void)videoClientDidStop:(VideoClient * _Nullable)client;
+- (void)videoClientMetricsReceived:(NSDictionary * _Nullable)metrics;
 @end
 
 
@@ -1083,6 +1212,23 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK21DefaultMeetingSession")
 @property (nonatomic, readonly, strong) MeetingSessionConfiguration * _Nonnull configuration;
 @property (nonatomic, readonly, strong) id <Logger> _Nonnull logger;
 - (nonnull instancetype)initWithConfiguration:(MeetingSessionConfiguration * _Nonnull)configuration logger:(id <Logger> _Nonnull)logger OBJC_DESIGNATED_INITIALIZER;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+
+/// <code>DefaultModality</code> is a backwards compatible extension of the
+/// attendee id (UUID string) and session token schemas (base 64 string).
+/// It appends #<modality> to either string, which indicates the modality
+/// of the participant.
+/// For example,
+/// <code>attendeeId</code>: “abcdefg”
+/// <code>contentAttendeeId</code>: “abcdefg#content”
+/// <code>DefaultModality(id: contentAttendeeId).base</code>: “abcdefg”
+/// <code>DefaultModality(id: contentAttendeeId).modality</code>: “content”
+/// <code>DefaultModality(id: contentAttendeeId).isOfType(type: .content)</code>: true
+SWIFT_CLASS("_TtC14AmazonChimeSDK15DefaultModality")
+@interface DefaultModality : NSObject
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
 @end
@@ -1219,6 +1365,33 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK20DeviceChangeObserver_")
 
 
 
+SWIFT_CLASS("_TtC14AmazonChimeSDK11DeviceUtils")
+@interface DeviceUtils : NSObject
++ (NSString * _Nonnull)getModelInfo SWIFT_WARN_UNUSED_RESULT;
++ (app_detailed_info_t)getDetailedInfo SWIFT_WARN_UNUSED_RESULT;
+- (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
+@end
+
+
+/// <code>InAppScreenCaptureSource</code> is used to share screen capture within the app. When the app is in the background,
+/// there is no sample sent to handler, and screen sharing is paused. <code>InAppScreenCaptureSource</code> is only available
+/// on iOS 11+ because of <code>RPScreenRecorder.startCapture(handler:completionHandler:)</code> method.
+/// <code>InAppScreenCaptureSource</code> does not support rotation while it’s in progress.
+SWIFT_CLASS("_TtC14AmazonChimeSDK24InAppScreenCaptureSource") SWIFT_AVAILABILITY(ios,introduced=11.0)
+@interface InAppScreenCaptureSource : NSObject <VideoCaptureSource>
+@property (nonatomic) enum VideoContentHint videoContentHint;
+- (nonnull instancetype)initWithLogger:(id <Logger> _Nonnull)logger OBJC_DESIGNATED_INITIALIZER;
+- (void)start;
+- (void)stop;
+- (void)addVideoSinkWithSink:(id <VideoSink> _Nonnull)sink;
+- (void)removeVideoSinkWithSink:(id <VideoSink> _Nonnull)sink;
+- (void)addCaptureSourceObserverWithObserver:(id <CaptureSourceObserver> _Nonnull)observer;
+- (void)removeCaptureSourceObserverWithObserver:(id <CaptureSourceObserver> _Nonnull)observer;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+
 /// <code>Scheduler</code> calls a callback on the schedule determined by the implementation.
 SWIFT_PROTOCOL("_TtP14AmazonChimeSDK9Scheduler_")
 @protocol Scheduler
@@ -1326,6 +1499,7 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK27MeetingSessionConfiguration")
 @property (nonatomic, readonly, strong) MeetingSessionURLs * _Nonnull urls;
 @property (nonatomic, readonly, copy) NSString * _Nonnull (^ _Nonnull urlRewriter)(NSString * _Nonnull);
 - (nonnull instancetype)initWithCreateMeetingResponse:(CreateMeetingResponse * _Nonnull)createMeetingResponse createAttendeeResponse:(CreateAttendeeResponse * _Nonnull)createAttendeeResponse;
+- (nonnull instancetype)initWithMeetingId:(NSString * _Nonnull)meetingId credentials:(MeetingSessionCredentials * _Nonnull)credentials urls:(MeetingSessionURLs * _Nonnull)urls urlRewriter:(NSString * _Nonnull (^ _Nonnull)(NSString * _Nonnull))urlRewriter OBJC_DESIGNATED_INITIALIZER;
 - (nonnull instancetype)initWithCreateMeetingResponse:(CreateMeetingResponse * _Nonnull)createMeetingResponse createAttendeeResponse:(CreateAttendeeResponse * _Nonnull)createAttendeeResponse urlRewriter:(NSString * _Nonnull (^ _Nonnull)(NSString * _Nonnull))urlRewriter OBJC_DESIGNATED_INITIALIZER;
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
@@ -1418,6 +1592,11 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK15MetricsObserver_")
 - (void)metricsDidReceiveWithMetrics:(NSDictionary * _Nonnull)metrics;
 @end
 
+typedef SWIFT_ENUM(NSInteger, ModalityType, open) {
+  ModalityTypeContent = 0,
+};
+static NSString * _Nonnull const ModalityTypeDomain = @"AmazonChimeSDK.ModalityType";
+
 
 @interface NSLock (SWIFT_EXTENSION(AmazonChimeSDK)) <AudioLock>
 @end
@@ -1447,6 +1626,15 @@ typedef SWIFT_ENUM(NSInteger, ObservableMetric, open) {
   ObservableMetricVideoReceiveBitrate = 8,
 /// Percentage of video packets lost from server to client across all receive streams
   ObservableMetricVideoReceivePacketLossPercent = 9,
+/// Below are metrics for content share stream
+/// Sum of total bitrate across all send streams
+  ObservableMetricContentShareVideoSendBitrate = 10,
+/// Percentage of video packets lost from client to server across all send streams
+  ObservableMetricContentShareVideoSendPacketLossPercent = 11,
+/// Average send FPS across all send streams
+  ObservableMetricContentShareVideoSendFps = 12,
+/// Round trip time of packets sent from client to server
+  ObservableMetricContentShareVideoSendRttMs = 13,
 };
 
 typedef SWIFT_ENUM(NSInteger, PermissionError, open) {
@@ -1487,6 +1675,12 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK12SignalUpdate")
 @end
 
 
+SWIFT_CLASS("_TtC14AmazonChimeSDK18TURNRequestService")
+@interface TURNRequestService : NSObject
+- (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
+@end
+
+
 /// <code>URLRewriterUtils</code> is class that defines default Url rewrite behavior
 SWIFT_CLASS("_TtC14AmazonChimeSDK16URLRewriterUtils")
 @interface URLRewriterUtils : NSObject
@@ -1516,10 +1710,38 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK18VideoCaptureFormat")
 @end
 
 
+@class VideoConfiguration;
+@protocol VideoSourceInternal;
+
+SWIFT_PROTOCOL("_TtP14AmazonChimeSDK19VideoClientProtocol_")
+@protocol VideoClientProtocol
+@property (nonatomic, strong) id <VideoClientDelegate> _Null_unspecified delegate;
++ (void)globalInitialize;
++ (void)setMediaClientConfig:(NSString * _Null_unspecified)configStr;
++ (NSArray * _Null_unspecified)devices SWIFT_WARN_UNUSED_RESULT;
++ (VideoDevice * _Null_unspecified)currentDevice SWIFT_WARN_UNUSED_RESULT;
+- (void)start:(NSString * _Null_unspecified)callId token:(NSString * _Null_unspecified)token sending:(BOOL)sending config:(VideoConfiguration * _Null_unspecified)config appInfo:(app_detailed_info_t)appInfo;
+- (void)stop;
+- (void)setSending:(BOOL)sending;
+- (void)setReceiving:(BOOL)receiving;
+- (void)setExternalVideoSource:(id <VideoSourceInternal> _Null_unspecified)source;
+- (NSString * _Null_unspecified)stateString SWIFT_WARN_UNUSED_RESULT;
+- (video_client_service_type_t)getServiceType SWIFT_WARN_UNUSED_RESULT;
+- (void)setRemotePause:(uint32_t)video_id pause:(BOOL)pause;
+- (NSArray * _Null_unspecified)activeTracks SWIFT_WARN_UNUSED_RESULT;
+- (void)setCurrentDevice:(VideoDevice * _Null_unspecified)captureDevice;
+- (void)videoLogCallBack:(video_client_loglevel_t)logLevel msg:(NSString * _Null_unspecified)msg;
+- (void)sendDataMessage:(NSString * _Null_unspecified)topic data:(int8_t const * _Null_unspecified)data lifetimeMs:(int32_t)lifetimeMs;
+@end
+
+
+@interface VideoClient (SWIFT_EXTENSION(AmazonChimeSDK)) <VideoClientProtocol>
+@end
+
 
 SWIFT_PROTOCOL("_TtP14AmazonChimeSDK21VideoClientController_")
 @protocol VideoClientController
-- (void)startWithTurnControlUrl:(NSString * _Nonnull)turnControlUrl signalingUrl:(NSString * _Nonnull)signalingUrl meetingId:(NSString * _Nonnull)meetingId joinToken:(NSString * _Nonnull)joinToken;
+- (void)start;
 - (void)stopAndDestroy;
 - (BOOL)startLocalVideoAndReturnError:(NSError * _Nullable * _Nullable)error;
 - (void)startLocalVideoWithSource:(id <VideoSource> _Nonnull)source;
@@ -1538,6 +1760,7 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK21VideoClientController_")
 - (void)unsubscribeFromReceiveDataMessageFromTopicWithTopic:(NSString * _Nonnull)topic;
 - (BOOL)sendDataMessageWithTopic:(NSString * _Nonnull)topic data:(id _Nonnull)data lifetimeMs:(int32_t)lifetimeMs error:(NSError * _Nullable * _Nullable)error;
 @end
+
 
 /// <code>VideoContentHint</code> describes the content type of a video source so that downstream encoders, etc. can properly
 /// decide on what parameters will work best. These options mirror https://www.w3.org/TR/mst-content-hint/ .
@@ -1568,8 +1791,9 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK10VideoFrame")
 /// Height of the video frame in pixels.
 @property (nonatomic, readonly) NSInteger height;
 /// Timestamp in nanoseconds at which the video frame was captured from some system monotonic clock.
-/// Will be aligned and converted to NTP (Network Time Protocol) within AmazonChimeSDKMedia framework, which will then be converted to a system
-/// monotonic clock on remote end. May be different on frames emanated from AmazonChimeSDKMedia framework.
+/// Will be aligned and converted to NTP (Network Time Protocol) within AmazonChimeSDKMedia framework,
+/// which will then be converted to a system monotonic clock on remote end.
+/// May be different on frames emanated from AmazonChimeSDKMedia framework.
 @property (nonatomic, readonly) int64_t timestampNs;
 /// Rotation of the video frame buffer in degrees clockwise from intended viewing horizon.
 /// e.g. If you were recording camera capture upside down relative to
@@ -1578,6 +1802,7 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK10VideoFrame")
 /// Object containing actual video frame data in some form.
 @property (nonatomic, readonly, strong) id <VideoFrameBuffer> _Nonnull buffer;
 - (nonnull instancetype)initWithTimestampNs:(int64_t)timestampNs rotation:(enum VideoRotation)rotation buffer:(id <VideoFrameBuffer> _Nonnull)buffer OBJC_DESIGNATED_INITIALIZER;
+- (nullable instancetype)initWithSampleBuffer:(CMSampleBufferRef _Nonnull)sampleBuffer OBJC_DESIGNATED_INITIALIZER;
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
 @end
@@ -1601,6 +1826,16 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK21VideoFramePixelBuffer")
 - (NSInteger)height SWIFT_WARN_UNUSED_RESULT;
 @property (nonatomic, readonly) CVPixelBufferRef _Nonnull pixelBuffer;
 - (nonnull instancetype)initWithPixelBuffer:(CVPixelBufferRef _Nonnull)pixelBuffer OBJC_DESIGNATED_INITIALIZER;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+
+/// <code>VideoFrameResender</code> contains logic to resend video frames as needed to maintain a minimum frame rate
+/// This can be useful with sources which may pause the generation of frames (like in-app ReplayKit screen sharing)
+/// so that internally encoders don’t get in a poor state, and new receivers can immediately receive frames
+SWIFT_CLASS("_TtC14AmazonChimeSDK18VideoFrameResender")
+@interface VideoFrameResender : NSObject
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
 @end
@@ -2167,6 +2402,38 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK26AudioVideoControllerFacade_")
 - (void)removeMetricsObserverWithObserver:(id <MetricsObserver> _Nonnull)observer;
 @end
 
+@class ContentShareSource;
+@protocol ContentShareObserver;
+
+/// <code>ContentShareController</code> exposes methods for starting and stopping content share with a <code>ContentShareSource</code>.
+/// The content represents a media steam to be shared in the meeting, such as screen capture or media files.
+/// Please refer to <a href="https://github.com/aws/amazon-chime-sdk-ios/blob/master/guides/content_share.md">content share guide</a> for details.
+SWIFT_PROTOCOL("_TtP14AmazonChimeSDK22ContentShareController_")
+@protocol ContentShareController
+/// Start sharing the content of a given <code>ContentShareSource</code>.
+/// Once sharing has started successfully, <code>ContentShareObserver.contentShareDidStart</code> will
+/// be notified. If sharing fails or stops, <code>ContentShareObserver.contentShareDidStop</code>
+/// will be invoked with <code>ContentShareStatus</code> as the cause.
+/// This will call <code>VideoSource.addVideoSink(sink:)</code> on the provided source
+/// and <code>VideoSource.removeVideoSink(sink:)</code> on the previously provided source.
+/// Calling this function repeatedly will replace the previous <code>ContentShareSource</code> as the one being transmitted.
+/// \param source source of content to be shared
+///
+- (void)startContentShareWithSource:(ContentShareSource * _Nonnull)source;
+/// Stop sharing the content of a <code>ContentShareSource</code> that previously started.
+/// Once the sharing stops successfully, <code>ContentShareObserver.contentShareDidStop</code>
+/// will be invoked with status code <code>ContentShareStatusCode.OK</code>.
+- (void)stopContentShare;
+/// Subscribe the given observer to content share events (sharing started and stopped).
+/// \param observer observer to be notified for events
+///
+- (void)addContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+/// Unsubscribe the given observer from content share events.
+/// \param observer observer to be removed for events
+///
+- (void)removeContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+@end
+
 @protocol VideoRenderView;
 @protocol VideoTileObserver;
 
@@ -2315,7 +2582,7 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK24RealtimeControllerFacade_")
 
 
 SWIFT_PROTOCOL("_TtP14AmazonChimeSDK16AudioVideoFacade_")
-@protocol AudioVideoFacade <ActiveSpeakerDetectorFacade, AudioVideoControllerFacade, DeviceController, RealtimeControllerFacade, VideoTileControllerFacade>
+@protocol AudioVideoFacade <ActiveSpeakerDetectorFacade, AudioVideoControllerFacade, ContentShareController, DeviceController, RealtimeControllerFacade, VideoTileControllerFacade>
 @end
 
 @class MeetingSessionStatus;
@@ -2470,6 +2737,7 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK22ClientMetricsCollector_")
 @protocol ClientMetricsCollector
 - (void)processAudioClientMetricsWithMetrics:(NSDictionary * _Nonnull)metrics;
 - (void)processVideoClientMetricsWithMetrics:(NSDictionary * _Nonnull)metrics;
+- (void)processContentShareVideoClientMetricsWithMetrics:(NSDictionary * _Nonnull)metrics;
 - (void)subscribeToMetricsWithObserver:(id <MetricsObserver> _Nonnull)observer;
 - (void)unsubscribeFromMetricsWithObserver:(id <MetricsObserver> _Nonnull)observer;
 @end
@@ -2526,6 +2794,62 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK13ConsoleLogger")
 - (enum LogLevel)getLogLevel SWIFT_WARN_UNUSED_RESULT;
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+
+@class ContentShareStatus;
+
+/// <code>ContentShareObserver</code> handles all callbacks related to the content share.
+/// By implementing the callback functions and registering with <code>ContentShareController.addContentShareObserver</code>,
+/// one can get notified with content share status events.
+SWIFT_PROTOCOL("_TtP14AmazonChimeSDK20ContentShareObserver_")
+@protocol ContentShareObserver
+/// Called when the content share has started.
+/// Note: this callback will be called on main thread.
+- (void)contentShareDidStart;
+/// Called when the content is no longer shared with other attendees with the reason provided in the status.
+/// If you no longer need the source producing frames, stop the source after this callback is invoked.
+/// Note: this callback will be called on main thread.
+/// \param status the reason why the content share has stopped
+///
+- (void)contentShareDidStopWithStatus:(ContentShareStatus * _Nonnull)status;
+@end
+
+
+/// <code>ContentShareSource</code> contains the media sources to attach to the content share
+SWIFT_CLASS("_TtC14AmazonChimeSDK18ContentShareSource")
+@interface ContentShareSource : NSObject
+@property (nonatomic, strong) id <VideoSource> _Nullable videoSource;
+- (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
+@end
+
+enum ContentShareStatusCode : NSInteger;
+
+/// <code>ContentShareStatus</code> indicates a status received regarding the content share.
+SWIFT_CLASS("_TtC14AmazonChimeSDK18ContentShareStatus")
+@interface ContentShareStatus : NSObject
+@property (nonatomic, readonly) enum ContentShareStatusCode statusCode;
+- (nonnull instancetype)initWithStatusCode:(enum ContentShareStatusCode)statusCode OBJC_DESIGNATED_INITIALIZER;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+/// <code>ContentShareStatusCode</code> indicates the reason the content share event occurred.
+typedef SWIFT_ENUM(NSInteger, ContentShareStatusCode, open) {
+/// No failure.
+  ContentShareStatusCodeOk = 0,
+/// This can happen when the content share video connection is in an unrecoverable failed state.
+/// Restart content share connection when this error is encountered.
+  ContentShareStatusCodeVideoServiceFailed = 1,
+};
+
+
+SWIFT_PROTOCOL("_TtP14AmazonChimeSDK33ContentShareVideoClientController_")
+@protocol ContentShareVideoClientController
+- (void)startVideoShareWithSource:(id <VideoSource> _Nonnull)source;
+- (void)stopVideoShare;
+- (void)subscribeToVideoClientStateChangeWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (void)unsubscribeFromVideoClientStateChangeWithObserver:(id <ContentShareObserver> _Nonnull)observer;
 @end
 
 
@@ -2707,7 +3031,7 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK23DefaultAudioVideoFacade")
 @interface DefaultAudioVideoFacade : NSObject <AudioVideoFacade>
 @property (nonatomic, readonly, strong) MeetingSessionConfiguration * _Nonnull configuration;
 @property (nonatomic, readonly, strong) id <Logger> _Nonnull logger;
-- (nonnull instancetype)initWithAudioVideoController:(id <AudioVideoControllerFacade> _Nonnull)audioVideoController realtimeController:(id <RealtimeControllerFacade> _Nonnull)realtimeController deviceController:(id <DeviceController> _Nonnull)deviceController videoTileController:(id <VideoTileController> _Nonnull)videoTileController activeSpeakerDetector:(id <ActiveSpeakerDetectorFacade> _Nonnull)activeSpeakerDetector OBJC_DESIGNATED_INITIALIZER;
+- (nonnull instancetype)initWithAudioVideoController:(id <AudioVideoControllerFacade> _Nonnull)audioVideoController realtimeController:(id <RealtimeControllerFacade> _Nonnull)realtimeController deviceController:(id <DeviceController> _Nonnull)deviceController videoTileController:(id <VideoTileController> _Nonnull)videoTileController activeSpeakerDetector:(id <ActiveSpeakerDetectorFacade> _Nonnull)activeSpeakerDetector contentShareController:(id <ContentShareController> _Nonnull)contentShareController OBJC_DESIGNATED_INITIALIZER;
 - (BOOL)startWithCallKitEnabled:(BOOL)callKitEnabled error:(NSError * _Nullable * _Nullable)error;
 - (BOOL)startAndReturnError:(NSError * _Nullable * _Nullable)error;
 - (void)stop;
@@ -2745,6 +3069,10 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK23DefaultAudioVideoFacade")
 - (void)removeActiveSpeakerObserverWithObserver:(id <ActiveSpeakerObserver> _Nonnull)observer;
 - (void)hasBandwidthPriorityCallbackWithHasBandwidthPriority:(BOOL)hasBandwidthPriority;
 - (MediaDevice * _Nullable)getActiveAudioDevice SWIFT_WARN_UNUSED_RESULT;
+- (void)startContentShareWithSource:(ContentShareSource * _Nonnull)source;
+- (void)stopContentShare;
+- (void)addContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (void)removeContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
 @end
@@ -2773,6 +3101,42 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK26DefaultCameraCaptureSource")
 
 @interface DefaultCameraCaptureSource (SWIFT_EXTENSION(AmazonChimeSDK)) <AVCaptureVideoDataOutputSampleBufferDelegate>
 - (void)captureOutput:(AVCaptureOutput * _Nonnull)_ didOutputSampleBuffer:(CMSampleBufferRef _Nonnull)sampleBuffer fromConnection:(AVCaptureConnection * _Nonnull)_;
+@end
+
+
+SWIFT_CLASS("_TtC14AmazonChimeSDK29DefaultContentShareController")
+@interface DefaultContentShareController : NSObject <ContentShareController>
+- (nonnull instancetype)initWithContentShareVideoClientController:(id <ContentShareVideoClientController> _Nonnull)contentShareVideoClientController OBJC_DESIGNATED_INITIALIZER;
+- (void)startContentShareWithSource:(ContentShareSource * _Nonnull)source;
+- (void)stopContentShare;
+- (void)addContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (void)removeContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+@protocol VideoClientProtocol;
+
+SWIFT_CLASS("_TtC14AmazonChimeSDK40DefaultContentShareVideoClientController")
+@interface DefaultContentShareVideoClientController : NSObject <ContentShareVideoClientController>
+- (nonnull instancetype)initWithVideoClient:(id <VideoClientProtocol> _Nonnull)videoClient configuration:(MeetingSessionConfiguration * _Nonnull)configuration logger:(id <Logger> _Nonnull)logger clientMetricsCollector:(id <ClientMetricsCollector> _Nonnull)clientMetricsCollector OBJC_DESIGNATED_INITIALIZER;
+- (void)startVideoShareWithSource:(id <VideoSource> _Nonnull)source;
+- (void)stopVideoShare;
+- (void)subscribeToVideoClientStateChangeWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (void)unsubscribeFromVideoClientStateChangeWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+@class VideoClient;
+
+@interface DefaultContentShareVideoClientController (SWIFT_EXTENSION(AmazonChimeSDK)) <VideoClientDelegate>
+- (void)videoClientRequestTurnCreds:(VideoClient * _Nullable)client;
+- (void)videoClientIsConnecting:(VideoClient * _Nullable)client;
+- (void)videoClientDidConnect:(VideoClient * _Nullable)client controlStatus:(int32_t)controlStatus;
+- (void)videoClientDidFail:(VideoClient * _Nullable)client status:(video_client_status_t)status controlStatus:(int32_t)controlStatus;
+- (void)videoClientDidStop:(VideoClient * _Nullable)client;
+- (void)videoClientMetricsReceived:(NSDictionary * _Nullable)metrics;
 @end
 
 
@@ -2805,6 +3169,23 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK21DefaultMeetingSession")
 @property (nonatomic, readonly, strong) MeetingSessionConfiguration * _Nonnull configuration;
 @property (nonatomic, readonly, strong) id <Logger> _Nonnull logger;
 - (nonnull instancetype)initWithConfiguration:(MeetingSessionConfiguration * _Nonnull)configuration logger:(id <Logger> _Nonnull)logger OBJC_DESIGNATED_INITIALIZER;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+
+/// <code>DefaultModality</code> is a backwards compatible extension of the
+/// attendee id (UUID string) and session token schemas (base 64 string).
+/// It appends #<modality> to either string, which indicates the modality
+/// of the participant.
+/// For example,
+/// <code>attendeeId</code>: “abcdefg”
+/// <code>contentAttendeeId</code>: “abcdefg#content”
+/// <code>DefaultModality(id: contentAttendeeId).base</code>: “abcdefg”
+/// <code>DefaultModality(id: contentAttendeeId).modality</code>: “content”
+/// <code>DefaultModality(id: contentAttendeeId).isOfType(type: .content)</code>: true
+SWIFT_CLASS("_TtC14AmazonChimeSDK15DefaultModality")
+@interface DefaultModality : NSObject
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
 @end
@@ -2941,6 +3322,33 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK20DeviceChangeObserver_")
 
 
 
+SWIFT_CLASS("_TtC14AmazonChimeSDK11DeviceUtils")
+@interface DeviceUtils : NSObject
++ (NSString * _Nonnull)getModelInfo SWIFT_WARN_UNUSED_RESULT;
++ (app_detailed_info_t)getDetailedInfo SWIFT_WARN_UNUSED_RESULT;
+- (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
+@end
+
+
+/// <code>InAppScreenCaptureSource</code> is used to share screen capture within the app. When the app is in the background,
+/// there is no sample sent to handler, and screen sharing is paused. <code>InAppScreenCaptureSource</code> is only available
+/// on iOS 11+ because of <code>RPScreenRecorder.startCapture(handler:completionHandler:)</code> method.
+/// <code>InAppScreenCaptureSource</code> does not support rotation while it’s in progress.
+SWIFT_CLASS("_TtC14AmazonChimeSDK24InAppScreenCaptureSource") SWIFT_AVAILABILITY(ios,introduced=11.0)
+@interface InAppScreenCaptureSource : NSObject <VideoCaptureSource>
+@property (nonatomic) enum VideoContentHint videoContentHint;
+- (nonnull instancetype)initWithLogger:(id <Logger> _Nonnull)logger OBJC_DESIGNATED_INITIALIZER;
+- (void)start;
+- (void)stop;
+- (void)addVideoSinkWithSink:(id <VideoSink> _Nonnull)sink;
+- (void)removeVideoSinkWithSink:(id <VideoSink> _Nonnull)sink;
+- (void)addCaptureSourceObserverWithObserver:(id <CaptureSourceObserver> _Nonnull)observer;
+- (void)removeCaptureSourceObserverWithObserver:(id <CaptureSourceObserver> _Nonnull)observer;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+
 /// <code>Scheduler</code> calls a callback on the schedule determined by the implementation.
 SWIFT_PROTOCOL("_TtP14AmazonChimeSDK9Scheduler_")
 @protocol Scheduler
@@ -3048,6 +3456,7 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK27MeetingSessionConfiguration")
 @property (nonatomic, readonly, strong) MeetingSessionURLs * _Nonnull urls;
 @property (nonatomic, readonly, copy) NSString * _Nonnull (^ _Nonnull urlRewriter)(NSString * _Nonnull);
 - (nonnull instancetype)initWithCreateMeetingResponse:(CreateMeetingResponse * _Nonnull)createMeetingResponse createAttendeeResponse:(CreateAttendeeResponse * _Nonnull)createAttendeeResponse;
+- (nonnull instancetype)initWithMeetingId:(NSString * _Nonnull)meetingId credentials:(MeetingSessionCredentials * _Nonnull)credentials urls:(MeetingSessionURLs * _Nonnull)urls urlRewriter:(NSString * _Nonnull (^ _Nonnull)(NSString * _Nonnull))urlRewriter OBJC_DESIGNATED_INITIALIZER;
 - (nonnull instancetype)initWithCreateMeetingResponse:(CreateMeetingResponse * _Nonnull)createMeetingResponse createAttendeeResponse:(CreateAttendeeResponse * _Nonnull)createAttendeeResponse urlRewriter:(NSString * _Nonnull (^ _Nonnull)(NSString * _Nonnull))urlRewriter OBJC_DESIGNATED_INITIALIZER;
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
@@ -3140,6 +3549,11 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK15MetricsObserver_")
 - (void)metricsDidReceiveWithMetrics:(NSDictionary * _Nonnull)metrics;
 @end
 
+typedef SWIFT_ENUM(NSInteger, ModalityType, open) {
+  ModalityTypeContent = 0,
+};
+static NSString * _Nonnull const ModalityTypeDomain = @"AmazonChimeSDK.ModalityType";
+
 
 @interface NSLock (SWIFT_EXTENSION(AmazonChimeSDK)) <AudioLock>
 @end
@@ -3169,6 +3583,15 @@ typedef SWIFT_ENUM(NSInteger, ObservableMetric, open) {
   ObservableMetricVideoReceiveBitrate = 8,
 /// Percentage of video packets lost from server to client across all receive streams
   ObservableMetricVideoReceivePacketLossPercent = 9,
+/// Below are metrics for content share stream
+/// Sum of total bitrate across all send streams
+  ObservableMetricContentShareVideoSendBitrate = 10,
+/// Percentage of video packets lost from client to server across all send streams
+  ObservableMetricContentShareVideoSendPacketLossPercent = 11,
+/// Average send FPS across all send streams
+  ObservableMetricContentShareVideoSendFps = 12,
+/// Round trip time of packets sent from client to server
+  ObservableMetricContentShareVideoSendRttMs = 13,
 };
 
 typedef SWIFT_ENUM(NSInteger, PermissionError, open) {
@@ -3209,6 +3632,12 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK12SignalUpdate")
 @end
 
 
+SWIFT_CLASS("_TtC14AmazonChimeSDK18TURNRequestService")
+@interface TURNRequestService : NSObject
+- (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
+@end
+
+
 /// <code>URLRewriterUtils</code> is class that defines default Url rewrite behavior
 SWIFT_CLASS("_TtC14AmazonChimeSDK16URLRewriterUtils")
 @interface URLRewriterUtils : NSObject
@@ -3238,10 +3667,38 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK18VideoCaptureFormat")
 @end
 
 
+@class VideoConfiguration;
+@protocol VideoSourceInternal;
+
+SWIFT_PROTOCOL("_TtP14AmazonChimeSDK19VideoClientProtocol_")
+@protocol VideoClientProtocol
+@property (nonatomic, strong) id <VideoClientDelegate> _Null_unspecified delegate;
++ (void)globalInitialize;
++ (void)setMediaClientConfig:(NSString * _Null_unspecified)configStr;
++ (NSArray * _Null_unspecified)devices SWIFT_WARN_UNUSED_RESULT;
++ (VideoDevice * _Null_unspecified)currentDevice SWIFT_WARN_UNUSED_RESULT;
+- (void)start:(NSString * _Null_unspecified)callId token:(NSString * _Null_unspecified)token sending:(BOOL)sending config:(VideoConfiguration * _Null_unspecified)config appInfo:(app_detailed_info_t)appInfo;
+- (void)stop;
+- (void)setSending:(BOOL)sending;
+- (void)setReceiving:(BOOL)receiving;
+- (void)setExternalVideoSource:(id <VideoSourceInternal> _Null_unspecified)source;
+- (NSString * _Null_unspecified)stateString SWIFT_WARN_UNUSED_RESULT;
+- (video_client_service_type_t)getServiceType SWIFT_WARN_UNUSED_RESULT;
+- (void)setRemotePause:(uint32_t)video_id pause:(BOOL)pause;
+- (NSArray * _Null_unspecified)activeTracks SWIFT_WARN_UNUSED_RESULT;
+- (void)setCurrentDevice:(VideoDevice * _Null_unspecified)captureDevice;
+- (void)videoLogCallBack:(video_client_loglevel_t)logLevel msg:(NSString * _Null_unspecified)msg;
+- (void)sendDataMessage:(NSString * _Null_unspecified)topic data:(int8_t const * _Null_unspecified)data lifetimeMs:(int32_t)lifetimeMs;
+@end
+
+
+@interface VideoClient (SWIFT_EXTENSION(AmazonChimeSDK)) <VideoClientProtocol>
+@end
+
 
 SWIFT_PROTOCOL("_TtP14AmazonChimeSDK21VideoClientController_")
 @protocol VideoClientController
-- (void)startWithTurnControlUrl:(NSString * _Nonnull)turnControlUrl signalingUrl:(NSString * _Nonnull)signalingUrl meetingId:(NSString * _Nonnull)meetingId joinToken:(NSString * _Nonnull)joinToken;
+- (void)start;
 - (void)stopAndDestroy;
 - (BOOL)startLocalVideoAndReturnError:(NSError * _Nullable * _Nullable)error;
 - (void)startLocalVideoWithSource:(id <VideoSource> _Nonnull)source;
@@ -3260,6 +3717,7 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK21VideoClientController_")
 - (void)unsubscribeFromReceiveDataMessageFromTopicWithTopic:(NSString * _Nonnull)topic;
 - (BOOL)sendDataMessageWithTopic:(NSString * _Nonnull)topic data:(id _Nonnull)data lifetimeMs:(int32_t)lifetimeMs error:(NSError * _Nullable * _Nullable)error;
 @end
+
 
 /// <code>VideoContentHint</code> describes the content type of a video source so that downstream encoders, etc. can properly
 /// decide on what parameters will work best. These options mirror https://www.w3.org/TR/mst-content-hint/ .
@@ -3290,8 +3748,9 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK10VideoFrame")
 /// Height of the video frame in pixels.
 @property (nonatomic, readonly) NSInteger height;
 /// Timestamp in nanoseconds at which the video frame was captured from some system monotonic clock.
-/// Will be aligned and converted to NTP (Network Time Protocol) within AmazonChimeSDKMedia framework, which will then be converted to a system
-/// monotonic clock on remote end. May be different on frames emanated from AmazonChimeSDKMedia framework.
+/// Will be aligned and converted to NTP (Network Time Protocol) within AmazonChimeSDKMedia framework,
+/// which will then be converted to a system monotonic clock on remote end.
+/// May be different on frames emanated from AmazonChimeSDKMedia framework.
 @property (nonatomic, readonly) int64_t timestampNs;
 /// Rotation of the video frame buffer in degrees clockwise from intended viewing horizon.
 /// e.g. If you were recording camera capture upside down relative to
@@ -3300,6 +3759,7 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK10VideoFrame")
 /// Object containing actual video frame data in some form.
 @property (nonatomic, readonly, strong) id <VideoFrameBuffer> _Nonnull buffer;
 - (nonnull instancetype)initWithTimestampNs:(int64_t)timestampNs rotation:(enum VideoRotation)rotation buffer:(id <VideoFrameBuffer> _Nonnull)buffer OBJC_DESIGNATED_INITIALIZER;
+- (nullable instancetype)initWithSampleBuffer:(CMSampleBufferRef _Nonnull)sampleBuffer OBJC_DESIGNATED_INITIALIZER;
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
 @end
@@ -3323,6 +3783,16 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK21VideoFramePixelBuffer")
 - (NSInteger)height SWIFT_WARN_UNUSED_RESULT;
 @property (nonatomic, readonly) CVPixelBufferRef _Nonnull pixelBuffer;
 - (nonnull instancetype)initWithPixelBuffer:(CVPixelBufferRef _Nonnull)pixelBuffer OBJC_DESIGNATED_INITIALIZER;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+
+/// <code>VideoFrameResender</code> contains logic to resend video frames as needed to maintain a minimum frame rate
+/// This can be useful with sources which may pause the generation of frames (like in-app ReplayKit screen sharing)
+/// so that internally encoders don’t get in a poor state, and new receivers can immediately receive frames
+SWIFT_CLASS("_TtC14AmazonChimeSDK18VideoFrameResender")
+@interface VideoFrameResender : NSObject
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
 @end
@@ -3891,6 +4361,38 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK26AudioVideoControllerFacade_")
 - (void)removeMetricsObserverWithObserver:(id <MetricsObserver> _Nonnull)observer;
 @end
 
+@class ContentShareSource;
+@protocol ContentShareObserver;
+
+/// <code>ContentShareController</code> exposes methods for starting and stopping content share with a <code>ContentShareSource</code>.
+/// The content represents a media steam to be shared in the meeting, such as screen capture or media files.
+/// Please refer to <a href="https://github.com/aws/amazon-chime-sdk-ios/blob/master/guides/content_share.md">content share guide</a> for details.
+SWIFT_PROTOCOL("_TtP14AmazonChimeSDK22ContentShareController_")
+@protocol ContentShareController
+/// Start sharing the content of a given <code>ContentShareSource</code>.
+/// Once sharing has started successfully, <code>ContentShareObserver.contentShareDidStart</code> will
+/// be notified. If sharing fails or stops, <code>ContentShareObserver.contentShareDidStop</code>
+/// will be invoked with <code>ContentShareStatus</code> as the cause.
+/// This will call <code>VideoSource.addVideoSink(sink:)</code> on the provided source
+/// and <code>VideoSource.removeVideoSink(sink:)</code> on the previously provided source.
+/// Calling this function repeatedly will replace the previous <code>ContentShareSource</code> as the one being transmitted.
+/// \param source source of content to be shared
+///
+- (void)startContentShareWithSource:(ContentShareSource * _Nonnull)source;
+/// Stop sharing the content of a <code>ContentShareSource</code> that previously started.
+/// Once the sharing stops successfully, <code>ContentShareObserver.contentShareDidStop</code>
+/// will be invoked with status code <code>ContentShareStatusCode.OK</code>.
+- (void)stopContentShare;
+/// Subscribe the given observer to content share events (sharing started and stopped).
+/// \param observer observer to be notified for events
+///
+- (void)addContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+/// Unsubscribe the given observer from content share events.
+/// \param observer observer to be removed for events
+///
+- (void)removeContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+@end
+
 @protocol VideoRenderView;
 @protocol VideoTileObserver;
 
@@ -4039,7 +4541,7 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK24RealtimeControllerFacade_")
 
 
 SWIFT_PROTOCOL("_TtP14AmazonChimeSDK16AudioVideoFacade_")
-@protocol AudioVideoFacade <ActiveSpeakerDetectorFacade, AudioVideoControllerFacade, DeviceController, RealtimeControllerFacade, VideoTileControllerFacade>
+@protocol AudioVideoFacade <ActiveSpeakerDetectorFacade, AudioVideoControllerFacade, ContentShareController, DeviceController, RealtimeControllerFacade, VideoTileControllerFacade>
 @end
 
 @class MeetingSessionStatus;
@@ -4194,6 +4696,7 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK22ClientMetricsCollector_")
 @protocol ClientMetricsCollector
 - (void)processAudioClientMetricsWithMetrics:(NSDictionary * _Nonnull)metrics;
 - (void)processVideoClientMetricsWithMetrics:(NSDictionary * _Nonnull)metrics;
+- (void)processContentShareVideoClientMetricsWithMetrics:(NSDictionary * _Nonnull)metrics;
 - (void)subscribeToMetricsWithObserver:(id <MetricsObserver> _Nonnull)observer;
 - (void)unsubscribeFromMetricsWithObserver:(id <MetricsObserver> _Nonnull)observer;
 @end
@@ -4250,6 +4753,62 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK13ConsoleLogger")
 - (enum LogLevel)getLogLevel SWIFT_WARN_UNUSED_RESULT;
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+
+@class ContentShareStatus;
+
+/// <code>ContentShareObserver</code> handles all callbacks related to the content share.
+/// By implementing the callback functions and registering with <code>ContentShareController.addContentShareObserver</code>,
+/// one can get notified with content share status events.
+SWIFT_PROTOCOL("_TtP14AmazonChimeSDK20ContentShareObserver_")
+@protocol ContentShareObserver
+/// Called when the content share has started.
+/// Note: this callback will be called on main thread.
+- (void)contentShareDidStart;
+/// Called when the content is no longer shared with other attendees with the reason provided in the status.
+/// If you no longer need the source producing frames, stop the source after this callback is invoked.
+/// Note: this callback will be called on main thread.
+/// \param status the reason why the content share has stopped
+///
+- (void)contentShareDidStopWithStatus:(ContentShareStatus * _Nonnull)status;
+@end
+
+
+/// <code>ContentShareSource</code> contains the media sources to attach to the content share
+SWIFT_CLASS("_TtC14AmazonChimeSDK18ContentShareSource")
+@interface ContentShareSource : NSObject
+@property (nonatomic, strong) id <VideoSource> _Nullable videoSource;
+- (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
+@end
+
+enum ContentShareStatusCode : NSInteger;
+
+/// <code>ContentShareStatus</code> indicates a status received regarding the content share.
+SWIFT_CLASS("_TtC14AmazonChimeSDK18ContentShareStatus")
+@interface ContentShareStatus : NSObject
+@property (nonatomic, readonly) enum ContentShareStatusCode statusCode;
+- (nonnull instancetype)initWithStatusCode:(enum ContentShareStatusCode)statusCode OBJC_DESIGNATED_INITIALIZER;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+/// <code>ContentShareStatusCode</code> indicates the reason the content share event occurred.
+typedef SWIFT_ENUM(NSInteger, ContentShareStatusCode, open) {
+/// No failure.
+  ContentShareStatusCodeOk = 0,
+/// This can happen when the content share video connection is in an unrecoverable failed state.
+/// Restart content share connection when this error is encountered.
+  ContentShareStatusCodeVideoServiceFailed = 1,
+};
+
+
+SWIFT_PROTOCOL("_TtP14AmazonChimeSDK33ContentShareVideoClientController_")
+@protocol ContentShareVideoClientController
+- (void)startVideoShareWithSource:(id <VideoSource> _Nonnull)source;
+- (void)stopVideoShare;
+- (void)subscribeToVideoClientStateChangeWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (void)unsubscribeFromVideoClientStateChangeWithObserver:(id <ContentShareObserver> _Nonnull)observer;
 @end
 
 
@@ -4431,7 +4990,7 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK23DefaultAudioVideoFacade")
 @interface DefaultAudioVideoFacade : NSObject <AudioVideoFacade>
 @property (nonatomic, readonly, strong) MeetingSessionConfiguration * _Nonnull configuration;
 @property (nonatomic, readonly, strong) id <Logger> _Nonnull logger;
-- (nonnull instancetype)initWithAudioVideoController:(id <AudioVideoControllerFacade> _Nonnull)audioVideoController realtimeController:(id <RealtimeControllerFacade> _Nonnull)realtimeController deviceController:(id <DeviceController> _Nonnull)deviceController videoTileController:(id <VideoTileController> _Nonnull)videoTileController activeSpeakerDetector:(id <ActiveSpeakerDetectorFacade> _Nonnull)activeSpeakerDetector OBJC_DESIGNATED_INITIALIZER;
+- (nonnull instancetype)initWithAudioVideoController:(id <AudioVideoControllerFacade> _Nonnull)audioVideoController realtimeController:(id <RealtimeControllerFacade> _Nonnull)realtimeController deviceController:(id <DeviceController> _Nonnull)deviceController videoTileController:(id <VideoTileController> _Nonnull)videoTileController activeSpeakerDetector:(id <ActiveSpeakerDetectorFacade> _Nonnull)activeSpeakerDetector contentShareController:(id <ContentShareController> _Nonnull)contentShareController OBJC_DESIGNATED_INITIALIZER;
 - (BOOL)startWithCallKitEnabled:(BOOL)callKitEnabled error:(NSError * _Nullable * _Nullable)error;
 - (BOOL)startAndReturnError:(NSError * _Nullable * _Nullable)error;
 - (void)stop;
@@ -4469,6 +5028,10 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK23DefaultAudioVideoFacade")
 - (void)removeActiveSpeakerObserverWithObserver:(id <ActiveSpeakerObserver> _Nonnull)observer;
 - (void)hasBandwidthPriorityCallbackWithHasBandwidthPriority:(BOOL)hasBandwidthPriority;
 - (MediaDevice * _Nullable)getActiveAudioDevice SWIFT_WARN_UNUSED_RESULT;
+- (void)startContentShareWithSource:(ContentShareSource * _Nonnull)source;
+- (void)stopContentShare;
+- (void)addContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (void)removeContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
 @end
@@ -4497,6 +5060,42 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK26DefaultCameraCaptureSource")
 
 @interface DefaultCameraCaptureSource (SWIFT_EXTENSION(AmazonChimeSDK)) <AVCaptureVideoDataOutputSampleBufferDelegate>
 - (void)captureOutput:(AVCaptureOutput * _Nonnull)_ didOutputSampleBuffer:(CMSampleBufferRef _Nonnull)sampleBuffer fromConnection:(AVCaptureConnection * _Nonnull)_;
+@end
+
+
+SWIFT_CLASS("_TtC14AmazonChimeSDK29DefaultContentShareController")
+@interface DefaultContentShareController : NSObject <ContentShareController>
+- (nonnull instancetype)initWithContentShareVideoClientController:(id <ContentShareVideoClientController> _Nonnull)contentShareVideoClientController OBJC_DESIGNATED_INITIALIZER;
+- (void)startContentShareWithSource:(ContentShareSource * _Nonnull)source;
+- (void)stopContentShare;
+- (void)addContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (void)removeContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+@protocol VideoClientProtocol;
+
+SWIFT_CLASS("_TtC14AmazonChimeSDK40DefaultContentShareVideoClientController")
+@interface DefaultContentShareVideoClientController : NSObject <ContentShareVideoClientController>
+- (nonnull instancetype)initWithVideoClient:(id <VideoClientProtocol> _Nonnull)videoClient configuration:(MeetingSessionConfiguration * _Nonnull)configuration logger:(id <Logger> _Nonnull)logger clientMetricsCollector:(id <ClientMetricsCollector> _Nonnull)clientMetricsCollector OBJC_DESIGNATED_INITIALIZER;
+- (void)startVideoShareWithSource:(id <VideoSource> _Nonnull)source;
+- (void)stopVideoShare;
+- (void)subscribeToVideoClientStateChangeWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (void)unsubscribeFromVideoClientStateChangeWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+@class VideoClient;
+
+@interface DefaultContentShareVideoClientController (SWIFT_EXTENSION(AmazonChimeSDK)) <VideoClientDelegate>
+- (void)videoClientRequestTurnCreds:(VideoClient * _Nullable)client;
+- (void)videoClientIsConnecting:(VideoClient * _Nullable)client;
+- (void)videoClientDidConnect:(VideoClient * _Nullable)client controlStatus:(int32_t)controlStatus;
+- (void)videoClientDidFail:(VideoClient * _Nullable)client status:(video_client_status_t)status controlStatus:(int32_t)controlStatus;
+- (void)videoClientDidStop:(VideoClient * _Nullable)client;
+- (void)videoClientMetricsReceived:(NSDictionary * _Nullable)metrics;
 @end
 
 
@@ -4529,6 +5128,23 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK21DefaultMeetingSession")
 @property (nonatomic, readonly, strong) MeetingSessionConfiguration * _Nonnull configuration;
 @property (nonatomic, readonly, strong) id <Logger> _Nonnull logger;
 - (nonnull instancetype)initWithConfiguration:(MeetingSessionConfiguration * _Nonnull)configuration logger:(id <Logger> _Nonnull)logger OBJC_DESIGNATED_INITIALIZER;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+
+/// <code>DefaultModality</code> is a backwards compatible extension of the
+/// attendee id (UUID string) and session token schemas (base 64 string).
+/// It appends #<modality> to either string, which indicates the modality
+/// of the participant.
+/// For example,
+/// <code>attendeeId</code>: “abcdefg”
+/// <code>contentAttendeeId</code>: “abcdefg#content”
+/// <code>DefaultModality(id: contentAttendeeId).base</code>: “abcdefg”
+/// <code>DefaultModality(id: contentAttendeeId).modality</code>: “content”
+/// <code>DefaultModality(id: contentAttendeeId).isOfType(type: .content)</code>: true
+SWIFT_CLASS("_TtC14AmazonChimeSDK15DefaultModality")
+@interface DefaultModality : NSObject
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
 @end
@@ -4665,6 +5281,33 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK20DeviceChangeObserver_")
 
 
 
+SWIFT_CLASS("_TtC14AmazonChimeSDK11DeviceUtils")
+@interface DeviceUtils : NSObject
++ (NSString * _Nonnull)getModelInfo SWIFT_WARN_UNUSED_RESULT;
++ (app_detailed_info_t)getDetailedInfo SWIFT_WARN_UNUSED_RESULT;
+- (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
+@end
+
+
+/// <code>InAppScreenCaptureSource</code> is used to share screen capture within the app. When the app is in the background,
+/// there is no sample sent to handler, and screen sharing is paused. <code>InAppScreenCaptureSource</code> is only available
+/// on iOS 11+ because of <code>RPScreenRecorder.startCapture(handler:completionHandler:)</code> method.
+/// <code>InAppScreenCaptureSource</code> does not support rotation while it’s in progress.
+SWIFT_CLASS("_TtC14AmazonChimeSDK24InAppScreenCaptureSource") SWIFT_AVAILABILITY(ios,introduced=11.0)
+@interface InAppScreenCaptureSource : NSObject <VideoCaptureSource>
+@property (nonatomic) enum VideoContentHint videoContentHint;
+- (nonnull instancetype)initWithLogger:(id <Logger> _Nonnull)logger OBJC_DESIGNATED_INITIALIZER;
+- (void)start;
+- (void)stop;
+- (void)addVideoSinkWithSink:(id <VideoSink> _Nonnull)sink;
+- (void)removeVideoSinkWithSink:(id <VideoSink> _Nonnull)sink;
+- (void)addCaptureSourceObserverWithObserver:(id <CaptureSourceObserver> _Nonnull)observer;
+- (void)removeCaptureSourceObserverWithObserver:(id <CaptureSourceObserver> _Nonnull)observer;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+
 /// <code>Scheduler</code> calls a callback on the schedule determined by the implementation.
 SWIFT_PROTOCOL("_TtP14AmazonChimeSDK9Scheduler_")
 @protocol Scheduler
@@ -4772,6 +5415,7 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK27MeetingSessionConfiguration")
 @property (nonatomic, readonly, strong) MeetingSessionURLs * _Nonnull urls;
 @property (nonatomic, readonly, copy) NSString * _Nonnull (^ _Nonnull urlRewriter)(NSString * _Nonnull);
 - (nonnull instancetype)initWithCreateMeetingResponse:(CreateMeetingResponse * _Nonnull)createMeetingResponse createAttendeeResponse:(CreateAttendeeResponse * _Nonnull)createAttendeeResponse;
+- (nonnull instancetype)initWithMeetingId:(NSString * _Nonnull)meetingId credentials:(MeetingSessionCredentials * _Nonnull)credentials urls:(MeetingSessionURLs * _Nonnull)urls urlRewriter:(NSString * _Nonnull (^ _Nonnull)(NSString * _Nonnull))urlRewriter OBJC_DESIGNATED_INITIALIZER;
 - (nonnull instancetype)initWithCreateMeetingResponse:(CreateMeetingResponse * _Nonnull)createMeetingResponse createAttendeeResponse:(CreateAttendeeResponse * _Nonnull)createAttendeeResponse urlRewriter:(NSString * _Nonnull (^ _Nonnull)(NSString * _Nonnull))urlRewriter OBJC_DESIGNATED_INITIALIZER;
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
@@ -4864,6 +5508,11 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK15MetricsObserver_")
 - (void)metricsDidReceiveWithMetrics:(NSDictionary * _Nonnull)metrics;
 @end
 
+typedef SWIFT_ENUM(NSInteger, ModalityType, open) {
+  ModalityTypeContent = 0,
+};
+static NSString * _Nonnull const ModalityTypeDomain = @"AmazonChimeSDK.ModalityType";
+
 
 @interface NSLock (SWIFT_EXTENSION(AmazonChimeSDK)) <AudioLock>
 @end
@@ -4893,6 +5542,15 @@ typedef SWIFT_ENUM(NSInteger, ObservableMetric, open) {
   ObservableMetricVideoReceiveBitrate = 8,
 /// Percentage of video packets lost from server to client across all receive streams
   ObservableMetricVideoReceivePacketLossPercent = 9,
+/// Below are metrics for content share stream
+/// Sum of total bitrate across all send streams
+  ObservableMetricContentShareVideoSendBitrate = 10,
+/// Percentage of video packets lost from client to server across all send streams
+  ObservableMetricContentShareVideoSendPacketLossPercent = 11,
+/// Average send FPS across all send streams
+  ObservableMetricContentShareVideoSendFps = 12,
+/// Round trip time of packets sent from client to server
+  ObservableMetricContentShareVideoSendRttMs = 13,
 };
 
 typedef SWIFT_ENUM(NSInteger, PermissionError, open) {
@@ -4933,6 +5591,12 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK12SignalUpdate")
 @end
 
 
+SWIFT_CLASS("_TtC14AmazonChimeSDK18TURNRequestService")
+@interface TURNRequestService : NSObject
+- (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
+@end
+
+
 /// <code>URLRewriterUtils</code> is class that defines default Url rewrite behavior
 SWIFT_CLASS("_TtC14AmazonChimeSDK16URLRewriterUtils")
 @interface URLRewriterUtils : NSObject
@@ -4962,10 +5626,38 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK18VideoCaptureFormat")
 @end
 
 
+@class VideoConfiguration;
+@protocol VideoSourceInternal;
+
+SWIFT_PROTOCOL("_TtP14AmazonChimeSDK19VideoClientProtocol_")
+@protocol VideoClientProtocol
+@property (nonatomic, strong) id <VideoClientDelegate> _Null_unspecified delegate;
++ (void)globalInitialize;
++ (void)setMediaClientConfig:(NSString * _Null_unspecified)configStr;
++ (NSArray * _Null_unspecified)devices SWIFT_WARN_UNUSED_RESULT;
++ (VideoDevice * _Null_unspecified)currentDevice SWIFT_WARN_UNUSED_RESULT;
+- (void)start:(NSString * _Null_unspecified)callId token:(NSString * _Null_unspecified)token sending:(BOOL)sending config:(VideoConfiguration * _Null_unspecified)config appInfo:(app_detailed_info_t)appInfo;
+- (void)stop;
+- (void)setSending:(BOOL)sending;
+- (void)setReceiving:(BOOL)receiving;
+- (void)setExternalVideoSource:(id <VideoSourceInternal> _Null_unspecified)source;
+- (NSString * _Null_unspecified)stateString SWIFT_WARN_UNUSED_RESULT;
+- (video_client_service_type_t)getServiceType SWIFT_WARN_UNUSED_RESULT;
+- (void)setRemotePause:(uint32_t)video_id pause:(BOOL)pause;
+- (NSArray * _Null_unspecified)activeTracks SWIFT_WARN_UNUSED_RESULT;
+- (void)setCurrentDevice:(VideoDevice * _Null_unspecified)captureDevice;
+- (void)videoLogCallBack:(video_client_loglevel_t)logLevel msg:(NSString * _Null_unspecified)msg;
+- (void)sendDataMessage:(NSString * _Null_unspecified)topic data:(int8_t const * _Null_unspecified)data lifetimeMs:(int32_t)lifetimeMs;
+@end
+
+
+@interface VideoClient (SWIFT_EXTENSION(AmazonChimeSDK)) <VideoClientProtocol>
+@end
+
 
 SWIFT_PROTOCOL("_TtP14AmazonChimeSDK21VideoClientController_")
 @protocol VideoClientController
-- (void)startWithTurnControlUrl:(NSString * _Nonnull)turnControlUrl signalingUrl:(NSString * _Nonnull)signalingUrl meetingId:(NSString * _Nonnull)meetingId joinToken:(NSString * _Nonnull)joinToken;
+- (void)start;
 - (void)stopAndDestroy;
 - (BOOL)startLocalVideoAndReturnError:(NSError * _Nullable * _Nullable)error;
 - (void)startLocalVideoWithSource:(id <VideoSource> _Nonnull)source;
@@ -4984,6 +5676,7 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK21VideoClientController_")
 - (void)unsubscribeFromReceiveDataMessageFromTopicWithTopic:(NSString * _Nonnull)topic;
 - (BOOL)sendDataMessageWithTopic:(NSString * _Nonnull)topic data:(id _Nonnull)data lifetimeMs:(int32_t)lifetimeMs error:(NSError * _Nullable * _Nullable)error;
 @end
+
 
 /// <code>VideoContentHint</code> describes the content type of a video source so that downstream encoders, etc. can properly
 /// decide on what parameters will work best. These options mirror https://www.w3.org/TR/mst-content-hint/ .
@@ -5014,8 +5707,9 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK10VideoFrame")
 /// Height of the video frame in pixels.
 @property (nonatomic, readonly) NSInteger height;
 /// Timestamp in nanoseconds at which the video frame was captured from some system monotonic clock.
-/// Will be aligned and converted to NTP (Network Time Protocol) within AmazonChimeSDKMedia framework, which will then be converted to a system
-/// monotonic clock on remote end. May be different on frames emanated from AmazonChimeSDKMedia framework.
+/// Will be aligned and converted to NTP (Network Time Protocol) within AmazonChimeSDKMedia framework,
+/// which will then be converted to a system monotonic clock on remote end.
+/// May be different on frames emanated from AmazonChimeSDKMedia framework.
 @property (nonatomic, readonly) int64_t timestampNs;
 /// Rotation of the video frame buffer in degrees clockwise from intended viewing horizon.
 /// e.g. If you were recording camera capture upside down relative to
@@ -5024,6 +5718,7 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK10VideoFrame")
 /// Object containing actual video frame data in some form.
 @property (nonatomic, readonly, strong) id <VideoFrameBuffer> _Nonnull buffer;
 - (nonnull instancetype)initWithTimestampNs:(int64_t)timestampNs rotation:(enum VideoRotation)rotation buffer:(id <VideoFrameBuffer> _Nonnull)buffer OBJC_DESIGNATED_INITIALIZER;
+- (nullable instancetype)initWithSampleBuffer:(CMSampleBufferRef _Nonnull)sampleBuffer OBJC_DESIGNATED_INITIALIZER;
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
 @end
@@ -5047,6 +5742,16 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK21VideoFramePixelBuffer")
 - (NSInteger)height SWIFT_WARN_UNUSED_RESULT;
 @property (nonatomic, readonly) CVPixelBufferRef _Nonnull pixelBuffer;
 - (nonnull instancetype)initWithPixelBuffer:(CVPixelBufferRef _Nonnull)pixelBuffer OBJC_DESIGNATED_INITIALIZER;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+
+/// <code>VideoFrameResender</code> contains logic to resend video frames as needed to maintain a minimum frame rate
+/// This can be useful with sources which may pause the generation of frames (like in-app ReplayKit screen sharing)
+/// so that internally encoders don’t get in a poor state, and new receivers can immediately receive frames
+SWIFT_CLASS("_TtC14AmazonChimeSDK18VideoFrameResender")
+@interface VideoFrameResender : NSObject
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
 @end
@@ -5613,6 +6318,38 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK26AudioVideoControllerFacade_")
 - (void)removeMetricsObserverWithObserver:(id <MetricsObserver> _Nonnull)observer;
 @end
 
+@class ContentShareSource;
+@protocol ContentShareObserver;
+
+/// <code>ContentShareController</code> exposes methods for starting and stopping content share with a <code>ContentShareSource</code>.
+/// The content represents a media steam to be shared in the meeting, such as screen capture or media files.
+/// Please refer to <a href="https://github.com/aws/amazon-chime-sdk-ios/blob/master/guides/content_share.md">content share guide</a> for details.
+SWIFT_PROTOCOL("_TtP14AmazonChimeSDK22ContentShareController_")
+@protocol ContentShareController
+/// Start sharing the content of a given <code>ContentShareSource</code>.
+/// Once sharing has started successfully, <code>ContentShareObserver.contentShareDidStart</code> will
+/// be notified. If sharing fails or stops, <code>ContentShareObserver.contentShareDidStop</code>
+/// will be invoked with <code>ContentShareStatus</code> as the cause.
+/// This will call <code>VideoSource.addVideoSink(sink:)</code> on the provided source
+/// and <code>VideoSource.removeVideoSink(sink:)</code> on the previously provided source.
+/// Calling this function repeatedly will replace the previous <code>ContentShareSource</code> as the one being transmitted.
+/// \param source source of content to be shared
+///
+- (void)startContentShareWithSource:(ContentShareSource * _Nonnull)source;
+/// Stop sharing the content of a <code>ContentShareSource</code> that previously started.
+/// Once the sharing stops successfully, <code>ContentShareObserver.contentShareDidStop</code>
+/// will be invoked with status code <code>ContentShareStatusCode.OK</code>.
+- (void)stopContentShare;
+/// Subscribe the given observer to content share events (sharing started and stopped).
+/// \param observer observer to be notified for events
+///
+- (void)addContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+/// Unsubscribe the given observer from content share events.
+/// \param observer observer to be removed for events
+///
+- (void)removeContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+@end
+
 @protocol VideoRenderView;
 @protocol VideoTileObserver;
 
@@ -5761,7 +6498,7 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK24RealtimeControllerFacade_")
 
 
 SWIFT_PROTOCOL("_TtP14AmazonChimeSDK16AudioVideoFacade_")
-@protocol AudioVideoFacade <ActiveSpeakerDetectorFacade, AudioVideoControllerFacade, DeviceController, RealtimeControllerFacade, VideoTileControllerFacade>
+@protocol AudioVideoFacade <ActiveSpeakerDetectorFacade, AudioVideoControllerFacade, ContentShareController, DeviceController, RealtimeControllerFacade, VideoTileControllerFacade>
 @end
 
 @class MeetingSessionStatus;
@@ -5916,6 +6653,7 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK22ClientMetricsCollector_")
 @protocol ClientMetricsCollector
 - (void)processAudioClientMetricsWithMetrics:(NSDictionary * _Nonnull)metrics;
 - (void)processVideoClientMetricsWithMetrics:(NSDictionary * _Nonnull)metrics;
+- (void)processContentShareVideoClientMetricsWithMetrics:(NSDictionary * _Nonnull)metrics;
 - (void)subscribeToMetricsWithObserver:(id <MetricsObserver> _Nonnull)observer;
 - (void)unsubscribeFromMetricsWithObserver:(id <MetricsObserver> _Nonnull)observer;
 @end
@@ -5972,6 +6710,62 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK13ConsoleLogger")
 - (enum LogLevel)getLogLevel SWIFT_WARN_UNUSED_RESULT;
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+
+@class ContentShareStatus;
+
+/// <code>ContentShareObserver</code> handles all callbacks related to the content share.
+/// By implementing the callback functions and registering with <code>ContentShareController.addContentShareObserver</code>,
+/// one can get notified with content share status events.
+SWIFT_PROTOCOL("_TtP14AmazonChimeSDK20ContentShareObserver_")
+@protocol ContentShareObserver
+/// Called when the content share has started.
+/// Note: this callback will be called on main thread.
+- (void)contentShareDidStart;
+/// Called when the content is no longer shared with other attendees with the reason provided in the status.
+/// If you no longer need the source producing frames, stop the source after this callback is invoked.
+/// Note: this callback will be called on main thread.
+/// \param status the reason why the content share has stopped
+///
+- (void)contentShareDidStopWithStatus:(ContentShareStatus * _Nonnull)status;
+@end
+
+
+/// <code>ContentShareSource</code> contains the media sources to attach to the content share
+SWIFT_CLASS("_TtC14AmazonChimeSDK18ContentShareSource")
+@interface ContentShareSource : NSObject
+@property (nonatomic, strong) id <VideoSource> _Nullable videoSource;
+- (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
+@end
+
+enum ContentShareStatusCode : NSInteger;
+
+/// <code>ContentShareStatus</code> indicates a status received regarding the content share.
+SWIFT_CLASS("_TtC14AmazonChimeSDK18ContentShareStatus")
+@interface ContentShareStatus : NSObject
+@property (nonatomic, readonly) enum ContentShareStatusCode statusCode;
+- (nonnull instancetype)initWithStatusCode:(enum ContentShareStatusCode)statusCode OBJC_DESIGNATED_INITIALIZER;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+/// <code>ContentShareStatusCode</code> indicates the reason the content share event occurred.
+typedef SWIFT_ENUM(NSInteger, ContentShareStatusCode, open) {
+/// No failure.
+  ContentShareStatusCodeOk = 0,
+/// This can happen when the content share video connection is in an unrecoverable failed state.
+/// Restart content share connection when this error is encountered.
+  ContentShareStatusCodeVideoServiceFailed = 1,
+};
+
+
+SWIFT_PROTOCOL("_TtP14AmazonChimeSDK33ContentShareVideoClientController_")
+@protocol ContentShareVideoClientController
+- (void)startVideoShareWithSource:(id <VideoSource> _Nonnull)source;
+- (void)stopVideoShare;
+- (void)subscribeToVideoClientStateChangeWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (void)unsubscribeFromVideoClientStateChangeWithObserver:(id <ContentShareObserver> _Nonnull)observer;
 @end
 
 
@@ -6153,7 +6947,7 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK23DefaultAudioVideoFacade")
 @interface DefaultAudioVideoFacade : NSObject <AudioVideoFacade>
 @property (nonatomic, readonly, strong) MeetingSessionConfiguration * _Nonnull configuration;
 @property (nonatomic, readonly, strong) id <Logger> _Nonnull logger;
-- (nonnull instancetype)initWithAudioVideoController:(id <AudioVideoControllerFacade> _Nonnull)audioVideoController realtimeController:(id <RealtimeControllerFacade> _Nonnull)realtimeController deviceController:(id <DeviceController> _Nonnull)deviceController videoTileController:(id <VideoTileController> _Nonnull)videoTileController activeSpeakerDetector:(id <ActiveSpeakerDetectorFacade> _Nonnull)activeSpeakerDetector OBJC_DESIGNATED_INITIALIZER;
+- (nonnull instancetype)initWithAudioVideoController:(id <AudioVideoControllerFacade> _Nonnull)audioVideoController realtimeController:(id <RealtimeControllerFacade> _Nonnull)realtimeController deviceController:(id <DeviceController> _Nonnull)deviceController videoTileController:(id <VideoTileController> _Nonnull)videoTileController activeSpeakerDetector:(id <ActiveSpeakerDetectorFacade> _Nonnull)activeSpeakerDetector contentShareController:(id <ContentShareController> _Nonnull)contentShareController OBJC_DESIGNATED_INITIALIZER;
 - (BOOL)startWithCallKitEnabled:(BOOL)callKitEnabled error:(NSError * _Nullable * _Nullable)error;
 - (BOOL)startAndReturnError:(NSError * _Nullable * _Nullable)error;
 - (void)stop;
@@ -6191,6 +6985,10 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK23DefaultAudioVideoFacade")
 - (void)removeActiveSpeakerObserverWithObserver:(id <ActiveSpeakerObserver> _Nonnull)observer;
 - (void)hasBandwidthPriorityCallbackWithHasBandwidthPriority:(BOOL)hasBandwidthPriority;
 - (MediaDevice * _Nullable)getActiveAudioDevice SWIFT_WARN_UNUSED_RESULT;
+- (void)startContentShareWithSource:(ContentShareSource * _Nonnull)source;
+- (void)stopContentShare;
+- (void)addContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (void)removeContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
 @end
@@ -6219,6 +7017,42 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK26DefaultCameraCaptureSource")
 
 @interface DefaultCameraCaptureSource (SWIFT_EXTENSION(AmazonChimeSDK)) <AVCaptureVideoDataOutputSampleBufferDelegate>
 - (void)captureOutput:(AVCaptureOutput * _Nonnull)_ didOutputSampleBuffer:(CMSampleBufferRef _Nonnull)sampleBuffer fromConnection:(AVCaptureConnection * _Nonnull)_;
+@end
+
+
+SWIFT_CLASS("_TtC14AmazonChimeSDK29DefaultContentShareController")
+@interface DefaultContentShareController : NSObject <ContentShareController>
+- (nonnull instancetype)initWithContentShareVideoClientController:(id <ContentShareVideoClientController> _Nonnull)contentShareVideoClientController OBJC_DESIGNATED_INITIALIZER;
+- (void)startContentShareWithSource:(ContentShareSource * _Nonnull)source;
+- (void)stopContentShare;
+- (void)addContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (void)removeContentShareObserverWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+@protocol VideoClientProtocol;
+
+SWIFT_CLASS("_TtC14AmazonChimeSDK40DefaultContentShareVideoClientController")
+@interface DefaultContentShareVideoClientController : NSObject <ContentShareVideoClientController>
+- (nonnull instancetype)initWithVideoClient:(id <VideoClientProtocol> _Nonnull)videoClient configuration:(MeetingSessionConfiguration * _Nonnull)configuration logger:(id <Logger> _Nonnull)logger clientMetricsCollector:(id <ClientMetricsCollector> _Nonnull)clientMetricsCollector OBJC_DESIGNATED_INITIALIZER;
+- (void)startVideoShareWithSource:(id <VideoSource> _Nonnull)source;
+- (void)stopVideoShare;
+- (void)subscribeToVideoClientStateChangeWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (void)unsubscribeFromVideoClientStateChangeWithObserver:(id <ContentShareObserver> _Nonnull)observer;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+@class VideoClient;
+
+@interface DefaultContentShareVideoClientController (SWIFT_EXTENSION(AmazonChimeSDK)) <VideoClientDelegate>
+- (void)videoClientRequestTurnCreds:(VideoClient * _Nullable)client;
+- (void)videoClientIsConnecting:(VideoClient * _Nullable)client;
+- (void)videoClientDidConnect:(VideoClient * _Nullable)client controlStatus:(int32_t)controlStatus;
+- (void)videoClientDidFail:(VideoClient * _Nullable)client status:(video_client_status_t)status controlStatus:(int32_t)controlStatus;
+- (void)videoClientDidStop:(VideoClient * _Nullable)client;
+- (void)videoClientMetricsReceived:(NSDictionary * _Nullable)metrics;
 @end
 
 
@@ -6251,6 +7085,23 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK21DefaultMeetingSession")
 @property (nonatomic, readonly, strong) MeetingSessionConfiguration * _Nonnull configuration;
 @property (nonatomic, readonly, strong) id <Logger> _Nonnull logger;
 - (nonnull instancetype)initWithConfiguration:(MeetingSessionConfiguration * _Nonnull)configuration logger:(id <Logger> _Nonnull)logger OBJC_DESIGNATED_INITIALIZER;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+
+/// <code>DefaultModality</code> is a backwards compatible extension of the
+/// attendee id (UUID string) and session token schemas (base 64 string).
+/// It appends #<modality> to either string, which indicates the modality
+/// of the participant.
+/// For example,
+/// <code>attendeeId</code>: “abcdefg”
+/// <code>contentAttendeeId</code>: “abcdefg#content”
+/// <code>DefaultModality(id: contentAttendeeId).base</code>: “abcdefg”
+/// <code>DefaultModality(id: contentAttendeeId).modality</code>: “content”
+/// <code>DefaultModality(id: contentAttendeeId).isOfType(type: .content)</code>: true
+SWIFT_CLASS("_TtC14AmazonChimeSDK15DefaultModality")
+@interface DefaultModality : NSObject
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
 @end
@@ -6387,6 +7238,33 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK20DeviceChangeObserver_")
 
 
 
+SWIFT_CLASS("_TtC14AmazonChimeSDK11DeviceUtils")
+@interface DeviceUtils : NSObject
++ (NSString * _Nonnull)getModelInfo SWIFT_WARN_UNUSED_RESULT;
++ (app_detailed_info_t)getDetailedInfo SWIFT_WARN_UNUSED_RESULT;
+- (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
+@end
+
+
+/// <code>InAppScreenCaptureSource</code> is used to share screen capture within the app. When the app is in the background,
+/// there is no sample sent to handler, and screen sharing is paused. <code>InAppScreenCaptureSource</code> is only available
+/// on iOS 11+ because of <code>RPScreenRecorder.startCapture(handler:completionHandler:)</code> method.
+/// <code>InAppScreenCaptureSource</code> does not support rotation while it’s in progress.
+SWIFT_CLASS("_TtC14AmazonChimeSDK24InAppScreenCaptureSource") SWIFT_AVAILABILITY(ios,introduced=11.0)
+@interface InAppScreenCaptureSource : NSObject <VideoCaptureSource>
+@property (nonatomic) enum VideoContentHint videoContentHint;
+- (nonnull instancetype)initWithLogger:(id <Logger> _Nonnull)logger OBJC_DESIGNATED_INITIALIZER;
+- (void)start;
+- (void)stop;
+- (void)addVideoSinkWithSink:(id <VideoSink> _Nonnull)sink;
+- (void)removeVideoSinkWithSink:(id <VideoSink> _Nonnull)sink;
+- (void)addCaptureSourceObserverWithObserver:(id <CaptureSourceObserver> _Nonnull)observer;
+- (void)removeCaptureSourceObserverWithObserver:(id <CaptureSourceObserver> _Nonnull)observer;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+
 /// <code>Scheduler</code> calls a callback on the schedule determined by the implementation.
 SWIFT_PROTOCOL("_TtP14AmazonChimeSDK9Scheduler_")
 @protocol Scheduler
@@ -6494,6 +7372,7 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK27MeetingSessionConfiguration")
 @property (nonatomic, readonly, strong) MeetingSessionURLs * _Nonnull urls;
 @property (nonatomic, readonly, copy) NSString * _Nonnull (^ _Nonnull urlRewriter)(NSString * _Nonnull);
 - (nonnull instancetype)initWithCreateMeetingResponse:(CreateMeetingResponse * _Nonnull)createMeetingResponse createAttendeeResponse:(CreateAttendeeResponse * _Nonnull)createAttendeeResponse;
+- (nonnull instancetype)initWithMeetingId:(NSString * _Nonnull)meetingId credentials:(MeetingSessionCredentials * _Nonnull)credentials urls:(MeetingSessionURLs * _Nonnull)urls urlRewriter:(NSString * _Nonnull (^ _Nonnull)(NSString * _Nonnull))urlRewriter OBJC_DESIGNATED_INITIALIZER;
 - (nonnull instancetype)initWithCreateMeetingResponse:(CreateMeetingResponse * _Nonnull)createMeetingResponse createAttendeeResponse:(CreateAttendeeResponse * _Nonnull)createAttendeeResponse urlRewriter:(NSString * _Nonnull (^ _Nonnull)(NSString * _Nonnull))urlRewriter OBJC_DESIGNATED_INITIALIZER;
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
@@ -6586,6 +7465,11 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK15MetricsObserver_")
 - (void)metricsDidReceiveWithMetrics:(NSDictionary * _Nonnull)metrics;
 @end
 
+typedef SWIFT_ENUM(NSInteger, ModalityType, open) {
+  ModalityTypeContent = 0,
+};
+static NSString * _Nonnull const ModalityTypeDomain = @"AmazonChimeSDK.ModalityType";
+
 
 @interface NSLock (SWIFT_EXTENSION(AmazonChimeSDK)) <AudioLock>
 @end
@@ -6615,6 +7499,15 @@ typedef SWIFT_ENUM(NSInteger, ObservableMetric, open) {
   ObservableMetricVideoReceiveBitrate = 8,
 /// Percentage of video packets lost from server to client across all receive streams
   ObservableMetricVideoReceivePacketLossPercent = 9,
+/// Below are metrics for content share stream
+/// Sum of total bitrate across all send streams
+  ObservableMetricContentShareVideoSendBitrate = 10,
+/// Percentage of video packets lost from client to server across all send streams
+  ObservableMetricContentShareVideoSendPacketLossPercent = 11,
+/// Average send FPS across all send streams
+  ObservableMetricContentShareVideoSendFps = 12,
+/// Round trip time of packets sent from client to server
+  ObservableMetricContentShareVideoSendRttMs = 13,
 };
 
 typedef SWIFT_ENUM(NSInteger, PermissionError, open) {
@@ -6655,6 +7548,12 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK12SignalUpdate")
 @end
 
 
+SWIFT_CLASS("_TtC14AmazonChimeSDK18TURNRequestService")
+@interface TURNRequestService : NSObject
+- (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
+@end
+
+
 /// <code>URLRewriterUtils</code> is class that defines default Url rewrite behavior
 SWIFT_CLASS("_TtC14AmazonChimeSDK16URLRewriterUtils")
 @interface URLRewriterUtils : NSObject
@@ -6684,10 +7583,38 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK18VideoCaptureFormat")
 @end
 
 
+@class VideoConfiguration;
+@protocol VideoSourceInternal;
+
+SWIFT_PROTOCOL("_TtP14AmazonChimeSDK19VideoClientProtocol_")
+@protocol VideoClientProtocol
+@property (nonatomic, strong) id <VideoClientDelegate> _Null_unspecified delegate;
++ (void)globalInitialize;
++ (void)setMediaClientConfig:(NSString * _Null_unspecified)configStr;
++ (NSArray * _Null_unspecified)devices SWIFT_WARN_UNUSED_RESULT;
++ (VideoDevice * _Null_unspecified)currentDevice SWIFT_WARN_UNUSED_RESULT;
+- (void)start:(NSString * _Null_unspecified)callId token:(NSString * _Null_unspecified)token sending:(BOOL)sending config:(VideoConfiguration * _Null_unspecified)config appInfo:(app_detailed_info_t)appInfo;
+- (void)stop;
+- (void)setSending:(BOOL)sending;
+- (void)setReceiving:(BOOL)receiving;
+- (void)setExternalVideoSource:(id <VideoSourceInternal> _Null_unspecified)source;
+- (NSString * _Null_unspecified)stateString SWIFT_WARN_UNUSED_RESULT;
+- (video_client_service_type_t)getServiceType SWIFT_WARN_UNUSED_RESULT;
+- (void)setRemotePause:(uint32_t)video_id pause:(BOOL)pause;
+- (NSArray * _Null_unspecified)activeTracks SWIFT_WARN_UNUSED_RESULT;
+- (void)setCurrentDevice:(VideoDevice * _Null_unspecified)captureDevice;
+- (void)videoLogCallBack:(video_client_loglevel_t)logLevel msg:(NSString * _Null_unspecified)msg;
+- (void)sendDataMessage:(NSString * _Null_unspecified)topic data:(int8_t const * _Null_unspecified)data lifetimeMs:(int32_t)lifetimeMs;
+@end
+
+
+@interface VideoClient (SWIFT_EXTENSION(AmazonChimeSDK)) <VideoClientProtocol>
+@end
+
 
 SWIFT_PROTOCOL("_TtP14AmazonChimeSDK21VideoClientController_")
 @protocol VideoClientController
-- (void)startWithTurnControlUrl:(NSString * _Nonnull)turnControlUrl signalingUrl:(NSString * _Nonnull)signalingUrl meetingId:(NSString * _Nonnull)meetingId joinToken:(NSString * _Nonnull)joinToken;
+- (void)start;
 - (void)stopAndDestroy;
 - (BOOL)startLocalVideoAndReturnError:(NSError * _Nullable * _Nullable)error;
 - (void)startLocalVideoWithSource:(id <VideoSource> _Nonnull)source;
@@ -6706,6 +7633,7 @@ SWIFT_PROTOCOL("_TtP14AmazonChimeSDK21VideoClientController_")
 - (void)unsubscribeFromReceiveDataMessageFromTopicWithTopic:(NSString * _Nonnull)topic;
 - (BOOL)sendDataMessageWithTopic:(NSString * _Nonnull)topic data:(id _Nonnull)data lifetimeMs:(int32_t)lifetimeMs error:(NSError * _Nullable * _Nullable)error;
 @end
+
 
 /// <code>VideoContentHint</code> describes the content type of a video source so that downstream encoders, etc. can properly
 /// decide on what parameters will work best. These options mirror https://www.w3.org/TR/mst-content-hint/ .
@@ -6736,8 +7664,9 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK10VideoFrame")
 /// Height of the video frame in pixels.
 @property (nonatomic, readonly) NSInteger height;
 /// Timestamp in nanoseconds at which the video frame was captured from some system monotonic clock.
-/// Will be aligned and converted to NTP (Network Time Protocol) within AmazonChimeSDKMedia framework, which will then be converted to a system
-/// monotonic clock on remote end. May be different on frames emanated from AmazonChimeSDKMedia framework.
+/// Will be aligned and converted to NTP (Network Time Protocol) within AmazonChimeSDKMedia framework,
+/// which will then be converted to a system monotonic clock on remote end.
+/// May be different on frames emanated from AmazonChimeSDKMedia framework.
 @property (nonatomic, readonly) int64_t timestampNs;
 /// Rotation of the video frame buffer in degrees clockwise from intended viewing horizon.
 /// e.g. If you were recording camera capture upside down relative to
@@ -6746,6 +7675,7 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK10VideoFrame")
 /// Object containing actual video frame data in some form.
 @property (nonatomic, readonly, strong) id <VideoFrameBuffer> _Nonnull buffer;
 - (nonnull instancetype)initWithTimestampNs:(int64_t)timestampNs rotation:(enum VideoRotation)rotation buffer:(id <VideoFrameBuffer> _Nonnull)buffer OBJC_DESIGNATED_INITIALIZER;
+- (nullable instancetype)initWithSampleBuffer:(CMSampleBufferRef _Nonnull)sampleBuffer OBJC_DESIGNATED_INITIALIZER;
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
 @end
@@ -6769,6 +7699,16 @@ SWIFT_CLASS("_TtC14AmazonChimeSDK21VideoFramePixelBuffer")
 - (NSInteger)height SWIFT_WARN_UNUSED_RESULT;
 @property (nonatomic, readonly) CVPixelBufferRef _Nonnull pixelBuffer;
 - (nonnull instancetype)initWithPixelBuffer:(CVPixelBufferRef _Nonnull)pixelBuffer OBJC_DESIGNATED_INITIALIZER;
+- (nonnull instancetype)init SWIFT_UNAVAILABLE;
++ (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
+@end
+
+
+/// <code>VideoFrameResender</code> contains logic to resend video frames as needed to maintain a minimum frame rate
+/// This can be useful with sources which may pause the generation of frames (like in-app ReplayKit screen sharing)
+/// so that internally encoders don’t get in a poor state, and new receivers can immediately receive frames
+SWIFT_CLASS("_TtC14AmazonChimeSDK18VideoFrameResender")
+@interface VideoFrameResender : NSObject
 - (nonnull instancetype)init SWIFT_UNAVAILABLE;
 + (nonnull instancetype)new SWIFT_UNAVAILABLE_MSG("-init is unavailable");
 @end
