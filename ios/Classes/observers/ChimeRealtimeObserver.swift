@@ -38,7 +38,7 @@ public class ChimeRealtimeObserver : RealtimeObserver {
         _eventSink("""
             {
             "Name": "OnAttendeesDidJoin",
-            "Arguments": [\(convertAttendeeInfosToJson(attendeeInfo: attendeeInfo))]
+            "Arguments": \(convertAttendeeInfosToJson(attendeeInfo: attendeeInfo))
             }
             """)
     }
@@ -47,7 +47,7 @@ public class ChimeRealtimeObserver : RealtimeObserver {
         _eventSink("""
             {
             "Name": "OnAttendeesDidLeave",
-            "Arguments": [\(convertAttendeeInfosToJson(attendeeInfo: attendeeInfo))]
+            "Arguments": \(convertAttendeeInfosToJson(attendeeInfo: attendeeInfo))
             }
             """)
     }
@@ -56,7 +56,7 @@ public class ChimeRealtimeObserver : RealtimeObserver {
         _eventSink("""
             {
             "Name": "OnAttendeesDidDrop",
-            "Arguments": [\(convertAttendeeInfosToJson(attendeeInfo: attendeeInfo))]
+            "Arguments": \(convertAttendeeInfosToJson(attendeeInfo: attendeeInfo))
             }
             """)
     }
@@ -65,7 +65,7 @@ public class ChimeRealtimeObserver : RealtimeObserver {
         _eventSink("""
             {
             "Name": "OnAttendeesDidMute",
-            "Arguments": [\(convertAttendeeInfosToJson(attendeeInfo: attendeeInfo))]
+            "Arguments": \(convertAttendeeInfosToJson(attendeeInfo: attendeeInfo))
             }
             """)
     }
@@ -74,7 +74,7 @@ public class ChimeRealtimeObserver : RealtimeObserver {
         _eventSink("""
             {
             "Name": "OnAttendeesDidUnmute",
-            "Arguments": [\(convertAttendeeInfosToJson(attendeeInfo: attendeeInfo))]
+            "Arguments": \(convertAttendeeInfosToJson(attendeeInfo: attendeeInfo))
             }
             """)
     }
