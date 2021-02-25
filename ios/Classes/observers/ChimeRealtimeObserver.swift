@@ -86,7 +86,7 @@ public class ChimeRealtimeObserver : RealtimeObserver {
             return """
             {
             "AttendeeId": "\(info.attendeeId)",
-            "ExernalUserId": "\(info.externalUserId)"
+            "ExternalUserId": "\(info.externalUserId)"
             }
             """
             }))
@@ -99,7 +99,7 @@ public class ChimeRealtimeObserver : RealtimeObserver {
             return """
                 {
                 "AttendeeId": "\(update.attendeeInfo.attendeeId)",
-                "ExernalUserId": "\(update.attendeeInfo.externalUserId)",
+                "ExternalUserId": "\(update.attendeeInfo.externalUserId)",
                 "SignalStrength": "\(update.signalStrength)"
                 }
                 """
@@ -112,7 +112,7 @@ public class ChimeRealtimeObserver : RealtimeObserver {
             return """
             {
             "AttendeeId": "\(update.attendeeInfo.attendeeId)",
-            "ExernalUserId": "\(update.attendeeInfo.externalUserId)",
+            "ExternalUserId": "\(update.attendeeInfo.externalUserId)",
             "VolumeLevel": "\(update.volumeLevel)"
             }
             """
