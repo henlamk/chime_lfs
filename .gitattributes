@@ -1,1 +1,2 @@
-git lfs track "ios/*.framework"
+git lfs track "ios/AmazonChimeSDK.framework"
+git lfs track "ios/AmazonChimeSDKMedia.framework"
