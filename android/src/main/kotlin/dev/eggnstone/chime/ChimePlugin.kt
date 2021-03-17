@@ -76,8 +76,18 @@ class ChimePlugin : FlutterPlugin, MethodCallHandler
             "Mute" -> handleMute(result)
             "UnbindVideoView" -> handleUnbindVideoView(call, result)
             "Unmute" -> handleUnmute(result)
+            "SubscribeToReceiveDataMessage" -> handleSubscribeToReceiveDataMessage(call, result)
             else -> result.notImplemented()
         }
+    }
+
+    private fun handleSubscribeToReceiveDataMessage(call: MethodCall, result: MethodChannel.Result) {
+
+
+        val topic = call.argument<String>("Topic")!!
+
+        _audioVideoFacade!!.addRealtimeDataMessageObserver(topic, ChimeRealtimeDataMessageObserver(_eventSink!!))
+        result.success("OK")
     }
 
     private fun handleCreateMeetingSession(call: MethodCall, result: MethodChannel.Result)

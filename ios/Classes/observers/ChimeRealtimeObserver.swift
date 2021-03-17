@@ -38,7 +38,7 @@ public class ChimeRealtimeObserver : RealtimeObserver {
         _eventSink("""
             {
             "Name": "OnAttendeesDidJoin",
-            "Arguments": [\(convertAttendeeInfosToJson(attendeeInfo: attendeeInfo))]
+            "Arguments": \(convertAttendeeInfosToJson(attendeeInfo: attendeeInfo))
             }
             """)
     }
@@ -47,7 +47,7 @@ public class ChimeRealtimeObserver : RealtimeObserver {
         _eventSink("""
             {
             "Name": "OnAttendeesDidLeave",
-            "Arguments": [\(convertAttendeeInfosToJson(attendeeInfo: attendeeInfo))]
+            "Arguments": \(convertAttendeeInfosToJson(attendeeInfo: attendeeInfo))
             }
             """)
     }
@@ -56,7 +56,7 @@ public class ChimeRealtimeObserver : RealtimeObserver {
         _eventSink("""
             {
             "Name": "OnAttendeesDidDrop",
-            "Arguments": [\(convertAttendeeInfosToJson(attendeeInfo: attendeeInfo))]
+            "Arguments": \(convertAttendeeInfosToJson(attendeeInfo: attendeeInfo))
             }
             """)
     }
@@ -65,7 +65,7 @@ public class ChimeRealtimeObserver : RealtimeObserver {
         _eventSink("""
             {
             "Name": "OnAttendeesDidMute",
-            "Arguments": [\(convertAttendeeInfosToJson(attendeeInfo: attendeeInfo))]
+            "Arguments": \(convertAttendeeInfosToJson(attendeeInfo: attendeeInfo))
             }
             """)
     }
@@ -74,7 +74,7 @@ public class ChimeRealtimeObserver : RealtimeObserver {
         _eventSink("""
             {
             "Name": "OnAttendeesDidUnmute",
-            "Arguments": [\(convertAttendeeInfosToJson(attendeeInfo: attendeeInfo))]
+            "Arguments": \(convertAttendeeInfosToJson(attendeeInfo: attendeeInfo))
             }
             """)
     }
@@ -86,7 +86,7 @@ public class ChimeRealtimeObserver : RealtimeObserver {
             return """
             {
             "AttendeeId": "\(info.attendeeId)",
-            "ExernalUserId": "\(info.externalUserId)"
+            "ExternalUserId": "\(info.externalUserId)"
             }
             """
             }))
@@ -99,7 +99,7 @@ public class ChimeRealtimeObserver : RealtimeObserver {
             return """
                 {
                 "AttendeeId": "\(update.attendeeInfo.attendeeId)",
-                "ExernalUserId": "\(update.attendeeInfo.externalUserId)",
+                "ExternalUserId": "\(update.attendeeInfo.externalUserId)",
                 "SignalStrength": "\(update.signalStrength)"
                 }
                 """
@@ -112,7 +112,7 @@ public class ChimeRealtimeObserver : RealtimeObserver {
             return """
             {
             "AttendeeId": "\(update.attendeeInfo.attendeeId)",
-            "ExernalUserId": "\(update.attendeeInfo.externalUserId)",
+            "ExternalUserId": "\(update.attendeeInfo.externalUserId)",
             "VolumeLevel": "\(update.volumeLevel)"
             }
             """
