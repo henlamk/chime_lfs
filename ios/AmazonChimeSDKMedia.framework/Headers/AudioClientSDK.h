@@ -31,6 +31,25 @@ typedef NS_ENUM(NSUInteger, AudioClientMetric) {
     clientPostJbSpk5sPacketsLostPercent,
 };
 
+@interface AppInfo: NSObject
+    @property NSString *appVersionName;
+    @property NSString *appVersionCode;
+    @property NSString *deviceMake;
+    @property NSString *deviceModel;
+    @property NSString *platformName;
+    @property NSString *platformVersion;
+    @property NSString *clientSource;
+    @property NSString *chimeSdkVersion;
+- (id) initWithAppVersionName:(NSString *)appVersionName
+               appVersionCode:(NSString *)appVersionCode
+                   deviceMake:(NSString *)deviceMake
+                  deviceModel:(NSString *)deviceModel
+                 platformName:(NSString *)platformName
+              platformVersion:(NSString *)platformVersion
+                 clientSource:(NSString *)clientSource
+              chimeSdkVersion:(NSString *)chimeSdkVersion;
+@end
+
 @protocol AudioClientDelegate <NSObject>
 
 @optional
@@ -55,6 +74,21 @@ typedef NS_ENUM(NSUInteger, AudioClientMetric) {
 
 @property (nonatomic, retain) NSObject <AudioClientDelegate> *delegate;
 
+// startSession method that passes AppInfo containing iOS SDK metadata to Audioclient.
+- (audio_client_status_t)startSession:(NSString *)host
+                             basePort:(NSInteger)port
+                               callId:(NSString*)callId
+                            profileId:(NSString*)profileId
+                       microphoneMute:(BOOL)mic_mute
+                          speakerMute:(BOOL)spk_mute
+                          isPresenter:(BOOL)presenter
+                         sessionToken:(NSString *)tokenString
+                           audioWsUrl:(NSString *)audioWsUrl
+                       callKitEnabled:(BOOL)callKitEnabled
+                              appInfo:(AppInfo *)appInfo
+;
+
+// Legacy startSession method without passing AppInfo for backward compatibility.
 - (audio_client_status_t)startSession:(NSString *)host
                              basePort:(NSInteger)port
                                callId:(NSString*)callId
