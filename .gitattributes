@@ -1,1 +1,1 @@
-git lfs track "*.framework"
+git lfs track "ios/*.framework"
