@@ -17,6 +17,7 @@ import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
+import org.json.JSONObject
 
 class ChimePlugin : FlutterPlugin, MethodCallHandler
 {
@@ -77,13 +78,24 @@ class ChimePlugin : FlutterPlugin, MethodCallHandler
             "UnbindVideoView" -> handleUnbindVideoView(call, result)
             "Unmute" -> handleUnmute(result)
             "SubscribeToReceiveDataMessage" -> handleSubscribeToReceiveDataMessage(call, result)
+            "SendRealtimeDataMessage" -> handleSendRealtimeDataMessage(call, result)
             else -> result.notImplemented()
         }
     }
 
+    private fun handleSendRealtimeDataMessage(call: MethodCall, result: MethodChannel.Result) {
+        var topic = call.argument<String>("Topic")!!
+        var attendeeId = call.argument<String>("AttendeeId")!!
+        var command = call.argument<String>("Command")!!
+
+        val jsonObject = JSONObject()
+        jsonObject.put("attendeeid", attendeeId)
+        jsonObject.put("command", command)
+
+        _audioVideoFacade!!.realtimeSendDataMessage(topic, jsonObject.toString())
+    }
+
     private fun handleSubscribeToReceiveDataMessage(call: MethodCall, result: MethodChannel.Result) {
-
-
         val topic = call.argument<String>("Topic")!!
 
         _audioVideoFacade!!.addRealtimeDataMessageObserver(topic, ChimeRealtimeDataMessageObserver(_eventSink!!))

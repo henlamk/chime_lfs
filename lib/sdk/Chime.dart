@@ -126,4 +126,10 @@ class Chime {
     var params = {'Topic': topic};
     return _methodChannel.invokeMethod('SubscribeToReceiveDataMessage', params);
   }
+
+  static Future<String> sendRealtimeDataMessage(
+      String topic, String attendeeid, String command) async {
+    var params = {'Topic': topic, "AttendeeId": attendeeid, "Command": command};
+    return _methodChannel.invokeMethod('SendRealtimeDataMessage', params);
+  }
 }

@@ -45,22 +45,43 @@ public class SwiftEggnstoneAmazonChimePlugin: NSObject, FlutterPlugin {
         case "ResumeRemoteVideoTile": self.handleResumeRemoteVideoTile(call: call, result: result)
         case "PauseRemoteVideoTile": self.handlePauseRemoteVideoTile(call: call, result: result)
         case "SubscribeToReceiveDataMessage": self.subscribeToReceiveDataMessage(call: call, result: result)
+        case "SendRealtimeDataMessage": self.sendRealtimeDataMessage(call: call, result: result)
             
         default:result(FlutterMethodNotImplemented)
         }
     }
     
+    func sendRealtimeDataMessage(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        do {
+            let args = call.arguments as? [String: Any]
+            if let myArgs = args as? [String: Any],
+               let attendeeid = myArgs["AttendeeId"] as? String,
+               let command = myArgs["Command"] as? String,
+               let topic = myArgs["Topic"] as? String {
+                try _audioVideoFacade?.realtimeSendDataMessage(topic: topic, data:
+                                                                [
+                                                                    "attendeeid": attendeeid,
+                                                                    "command": command
+                                                                ],
+                                                               lifetimeMs: 10000)
+            }
+        }
+        catch {
+            result(FlutterError())
+        }
+    }
+    
     func subscribeToReceiveDataMessage(call: FlutterMethodCall, result: @escaping FlutterResult) {
         let eventSink = ExampleStreamHandler.get().getEventSink()!
-
+        
         do {
             let args = call.arguments as? [String: Any]
             if let myArgs = args as? [String: Any],
                let topic = myArgs["Topic"] as? String {
-               try _audioVideoFacade?.addRealtimeDataMessageObserver(topic: topic, observer: ChimeRealtimeDataMessageObserver(eventSink: eventSink))
+                try _audioVideoFacade?.addRealtimeDataMessageObserver(topic: topic, observer: ChimeRealtimeDataMessageObserver(eventSink: eventSink))
             }
             result("OK")
-
+            
         } catch {
             result(FlutterError())
         }
