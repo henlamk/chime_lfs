@@ -1,5 +1,5 @@
 // swift-interface-format-version: 1.0
-// swift-compiler-version: Apple Swift version 5.1.3 (swiftlang-1100.0.282.1 clang-1100.0.33.15)
+// swift-compiler-version: Apple Swift version 5.3.2 (swiftlang-1200.0.45 clang-1200.0.32.28)
 // swift-module-flags: -target i386-apple-ios10.0-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -O -module-name AmazonChimeSDK
 import AVFoundation
 import AmazonChimeSDKMedia
@@ -105,12 +105,12 @@ import os
   @objc func videoSessionDidStartWithStatus(sessionStatus: AmazonChimeSDK.MeetingSessionStatus)
   @objc func videoSessionDidStopWithStatus(sessionStatus: AmazonChimeSDK.MeetingSessionStatus)
 }
-@objc @objcMembers public class DeviceUtils : ObjectiveC.NSObject {
+@objc @_inheritsConvenienceInitializers @objcMembers public class DeviceUtils : ObjectiveC.NSObject {
   @objc public static func getModelInfo() -> Swift.String
   @objc public static func getDetailedInfo() -> AmazonChimeSDKMedia.app_detailed_info_t
   @objc public static func getAppInfo() -> AmazonChimeSDKMedia.AppInfo
-  @objc override dynamic public init()
   @objc deinit
+  @objc override dynamic public init()
 }
 @objc @objcMembers public class AttendeeInfo : ObjectiveC.NSObject, Swift.Comparable {
   @objc final public let attendeeId: Swift.String
@@ -121,8 +121,8 @@ import os
     @objc get
   }
   public static func < (lhs: AmazonChimeSDK.AttendeeInfo, rhs: AmazonChimeSDK.AttendeeInfo) -> Swift.Bool
-  @objc override dynamic public init()
   @objc deinit
+  @objc override dynamic public init()
 }
 @objc public protocol ClientMetricsCollector {
   @objc func processAudioClientMetrics(metrics: [Swift.AnyHashable : Any])
@@ -140,8 +140,8 @@ import os
   @objc public func error(msg: Swift.String)
   @objc public func setLogLevel(level: AmazonChimeSDK.LogLevel)
   @objc public func getLogLevel() -> AmazonChimeSDK.LogLevel
-  @objc override dynamic public init()
   @objc deinit
+  @objc override dynamic public init()
 }
 @objc public enum ModalityType : Swift.Int, Swift.Error, Swift.CustomStringConvertible {
   case content
@@ -159,34 +159,34 @@ import os
 }
 @objc @objcMembers public class CreateAttendeeResponse : ObjectiveC.NSObject {
   @objc public init(attendee: AmazonChimeSDK.Attendee)
-  @objc override dynamic public init()
   @objc deinit
+  @objc override dynamic public init()
 }
 @objc @objcMembers public class Attendee : ObjectiveC.NSObject {
   @objc public init(attendeeId: Swift.String, externalUserId: Swift.String, joinToken: Swift.String)
-  @objc override dynamic public init()
   @objc deinit
+  @objc override dynamic public init()
 }
 public typealias URLRewriter = (Swift.String) -> Swift.String
-@objc @objcMembers public class URLRewriterUtils : ObjectiveC.NSObject {
-  @objc public static let defaultUrlRewriter: AmazonChimeSDK.URLRewriter
-  @objc override dynamic public init()
+@objc @_inheritsConvenienceInitializers @objcMembers public class URLRewriterUtils : ObjectiveC.NSObject {
+  @objc public static let defaultUrlRewriter: (Swift.String) -> Swift.String
   @objc deinit
+  @objc override dynamic public init()
 }
 @objc @objcMembers public class CreateMeetingResponse : ObjectiveC.NSObject {
   @objc public init(meeting: AmazonChimeSDK.Meeting)
-  @objc override dynamic public init()
   @objc deinit
+  @objc override dynamic public init()
 }
 @objc @objcMembers public class Meeting : ObjectiveC.NSObject {
   @objc public init(externalMeetingId: Swift.String?, mediaPlacement: AmazonChimeSDK.MediaPlacement, mediaRegion: Swift.String, meetingId: Swift.String)
-  @objc override dynamic public init()
   @objc deinit
+  @objc override dynamic public init()
 }
 @objc @objcMembers public class MediaPlacement : ObjectiveC.NSObject {
   @objc public init(audioFallbackUrl: Swift.String, audioHostUrl: Swift.String, signalingUrl: Swift.String, turnControlUrl: Swift.String)
-  @objc override dynamic public init()
   @objc deinit
+  @objc override dynamic public init()
 }
 @objc @objcMembers public class DefaultActiveSpeakerDetector : ObjectiveC.NSObject, AmazonChimeSDK.ActiveSpeakerDetectorFacade, AmazonChimeSDK.RealtimeObserver {
   @objc public init(selfAttendeeId: Swift.String)
@@ -200,8 +200,8 @@ public typealias URLRewriter = (Swift.String) -> Swift.String
   @objc public func attendeesDidJoin(attendeeInfo attendeeInfos: [AmazonChimeSDK.AttendeeInfo])
   @objc public func addActiveSpeakerObserver(policy: AmazonChimeSDK.ActiveSpeakerPolicy, observer: AmazonChimeSDK.ActiveSpeakerObserver)
   @objc public func removeActiveSpeakerObserver(observer: AmazonChimeSDK.ActiveSpeakerObserver)
-  @objc override dynamic public init()
   @objc deinit
+  @objc override dynamic public init()
 }
 @objc public protocol AudioClientProtocol {
   @objc func startSession(_ host: Swift.String!, basePort port: Swift.Int, callId: Swift.String!, profileId: Swift.String!, microphoneMute mic_mute: Swift.Bool, speakerMute spk_mute: Swift.Bool, isPresenter presenter: Swift.Bool, sessionToken tokenString: Swift.String!, audioWsUrl: Swift.String!, callKitEnabled: Swift.Bool, appInfo: AmazonChimeSDKMedia.AppInfo!) -> AmazonChimeSDKMedia.audio_client_status_t
@@ -221,7 +221,7 @@ public typealias URLRewriter = (Swift.String) -> Swift.String
 }
 extension AudioClient : AmazonChimeSDK.AudioClientProtocol {
 }
-@objc @objcMembers public class DefaultActiveSpeakerPolicy : ObjectiveC.NSObject, AmazonChimeSDK.ActiveSpeakerPolicy {
+@objc @_inheritsConvenienceInitializers @objcMembers public class DefaultActiveSpeakerPolicy : ObjectiveC.NSObject, AmazonChimeSDK.ActiveSpeakerPolicy {
   @objc public static let defaultSpeakerWeight: Swift.Double
   @objc public static let defaultCutoffThreshold: Swift.Double
   @objc public static let defaultTakeoverRate: Swift.Double
@@ -271,8 +271,8 @@ extension AudioClient : AmazonChimeSDK.AudioClientProtocol {
   @objc public func height() -> Swift.Int
   @objc final public let pixelBuffer: CoreVideo.CVPixelBuffer
   @objc public init(pixelBuffer: CoreVideo.CVPixelBuffer)
-  @objc override dynamic public init()
   @objc deinit
+  @objc override dynamic public init()
 }
 @objc @objcMembers public class VideoCaptureFormat : ObjectiveC.NSObject {
   @objc final public let width: Swift.Int
@@ -281,8 +281,8 @@ extension AudioClient : AmazonChimeSDK.AudioClientProtocol {
   @objc public init(width: Swift.Int, height: Swift.Int, maxFrameRate: Swift.Int)
   @objc override dynamic public func isEqual(_ object: Any?) -> Swift.Bool
   @objc public static func fromAVCaptureDeviceFormat(format: AVFoundation.AVCaptureDevice.Format) -> AmazonChimeSDK.VideoCaptureFormat
-  @objc override dynamic public init()
   @objc deinit
+  @objc override dynamic public init()
 }
 @objc public protocol CaptureSourceObserver {
   @objc func captureDidStart()
@@ -328,8 +328,8 @@ extension AudioClient : AmazonChimeSDK.AudioClientProtocol {
   @objc public func stopLocalVideo()
   @objc public func startRemoteVideo()
   @objc public func stopRemoteVideo()
-  @objc override dynamic public init()
   @objc deinit
+  @objc override dynamic public init()
 }
 @objc public protocol ContentShareObserver {
   @objc func contentShareDidStart()
@@ -384,8 +384,8 @@ extension AudioClient : AmazonChimeSDK.AudioClientProtocol {
   @objc public func removeEventAnalyticsObserver(observer: AmazonChimeSDK.EventAnalyticsObserver)
   @objc public func getMeetingHistory() -> [AmazonChimeSDK.MeetingHistoryEvent]
   @objc public func getCommonEventAttributes() -> [Swift.AnyHashable : Any]
-  @objc override dynamic public init()
   @objc deinit
+  @objc override dynamic public init()
 }
 extension CMSampleBuffer {
   public func getVideoRotation() -> AmazonChimeSDK.VideoRotation
@@ -396,8 +396,8 @@ extension CMSampleBuffer {
   @objc public func stopVideoShare()
   @objc public func subscribeToVideoClientStateChange(observer: AmazonChimeSDK.ContentShareObserver)
   @objc public func unsubscribeFromVideoClientStateChange(observer: AmazonChimeSDK.ContentShareObserver)
-  @objc override dynamic public init()
   @objc deinit
+  @objc override dynamic public init()
 }
 extension DefaultContentShareVideoClientController : AmazonChimeSDKMedia.VideoClientDelegate {
   @objc dynamic public func videoClientRequestTurnCreds(_ client: AmazonChimeSDKMedia.VideoClient?)
@@ -441,8 +441,8 @@ extension DefaultContentShareVideoClientController : AmazonChimeSDKMedia.VideoCl
   @objc final public let logger: AmazonChimeSDK.Logger
   @objc final public let eventAnalyticsController: AmazonChimeSDK.EventAnalyticsController
   @objc public init(configuration: AmazonChimeSDK.MeetingSessionConfiguration, logger: AmazonChimeSDK.Logger)
-  @objc override dynamic public init()
   @objc deinit
+  @objc override dynamic public init()
 }
 @objc @objcMembers public class DefaultRealtimeController : ObjectiveC.NSObject, AmazonChimeSDK.RealtimeControllerFacade {
   @objc public init(audioClientController: AmazonChimeSDK.AudioClientController, audioClientObserver: AmazonChimeSDK.AudioClientObserver, videoClientController: AmazonChimeSDK.VideoClientController)
@@ -458,9 +458,9 @@ extension DefaultContentShareVideoClientController : AmazonChimeSDKMedia.VideoCl
   @objc override dynamic public init()
   @objc deinit
 }
-@objc @objcMembers public class TURNRequestService : ObjectiveC.NSObject {
-  @objc override dynamic public init()
+@objc @_inheritsConvenienceInitializers @objcMembers public class TURNRequestService : ObjectiveC.NSObject {
   @objc deinit
+  @objc override dynamic public init()
 }
 @objc public enum VideoRotation : Swift.Int {
   case rotation0 = 0
@@ -506,10 +506,10 @@ extension DefaultContentShareVideoClientController : AmazonChimeSDKMedia.VideoCl
   @objc override dynamic public init(frame: CoreGraphics.CGRect)
   @objc public func onVideoFrameReceived(frame: AmazonChimeSDK.VideoFrame)
   @objc public func resetImage()
+  @objc deinit
   @objc override dynamic public init(image: UIKit.UIImage?)
   @available(iOS 3.0, *)
   @objc override dynamic public init(image: UIKit.UIImage?, highlightedImage: UIKit.UIImage?)
-  @objc deinit
 }
 @objc public protocol VideoFrameBuffer {
   @objc func width() -> Swift.Int
@@ -543,8 +543,8 @@ extension DefaultContentShareVideoClientController : AmazonChimeSDKMedia.VideoCl
   @objc public func onVideoFrameReceived(frame: AmazonChimeSDK.VideoFrame)
   @objc public func unbind()
   @objc public func setPauseState(pauseState: AmazonChimeSDK.VideoPauseState)
-  @objc override dynamic public init()
   @objc deinit
+  @objc override dynamic public init()
 }
 @objc @objcMembers public class DefaultVideoTileController : ObjectiveC.NSObject, AmazonChimeSDK.VideoTileController {
   @objc public init(videoClientController: AmazonChimeSDK.VideoClientController, logger: AmazonChimeSDK.Logger, meetingStatsCollector: AmazonChimeSDK.MeetingStatsCollector)
@@ -570,10 +570,10 @@ extension DefaultContentShareVideoClientController : AmazonChimeSDKMedia.VideoCl
   @objc func getActiveCamera() -> AmazonChimeSDK.MediaDevice?
   @objc func getActiveAudioDevice() -> AmazonChimeSDK.MediaDevice?
 }
-@objc @objcMembers public class ContentShareSource : ObjectiveC.NSObject {
+@objc @_inheritsConvenienceInitializers @objcMembers public class ContentShareSource : ObjectiveC.NSObject {
   @objc public var videoSource: AmazonChimeSDK.VideoSource?
-  @objc override dynamic public init()
   @objc deinit
+  @objc override dynamic public init()
 }
 @objc @available(iOS 11.0, *)
 @objcMembers public class InAppScreenCaptureSource : ObjectiveC.NSObject, AmazonChimeSDK.VideoCaptureSource {
@@ -585,8 +585,8 @@ extension DefaultContentShareVideoClientController : AmazonChimeSDKMedia.VideoCl
   @objc public func removeVideoSink(sink: AmazonChimeSDK.VideoSink)
   @objc public func addCaptureSourceObserver(observer: AmazonChimeSDK.CaptureSourceObserver)
   @objc public func removeCaptureSourceObserver(observer: AmazonChimeSDK.CaptureSourceObserver)
-  @objc override dynamic public init()
   @objc deinit
+  @objc override dynamic public init()
 }
 extension Dictionary where Key == Swift.AnyHashable {
   public func toJsonString() -> Swift.String
@@ -697,11 +697,11 @@ extension Dictionary where Key == Swift.AnyHashable {
     get
   }
   public typealias RawValue = Swift.Int
-  public static var _nsErrorDomain: Swift.String {
-    get
-  }
   public init?(rawValue: Swift.Int)
   public var rawValue: Swift.Int {
+    get
+  }
+  public static var _nsErrorDomain: Swift.String {
     get
   }
 }
@@ -730,8 +730,8 @@ extension Dictionary where Key == Swift.AnyHashable {
   @objc final public let joinToken: Swift.String
   @objc public init(attendeeId: Swift.String, externalUserId: Swift.String, joinToken: Swift.String)
   @objc override dynamic public init()
-  @objc deinit
   required public init(from decoder: Swift.Decoder) throws
+  @objc deinit
   public func encode(to encoder: Swift.Encoder) throws
 }
 @objc public protocol VideoSink {
@@ -803,8 +803,8 @@ extension Dictionary where Key == Swift.AnyHashable {
   @objc final public let signalingUrl: Swift.String
   @objc public init(audioFallbackUrl: Swift.String, audioHostUrl: Swift.String, turnControlUrl: Swift.String, signalingUrl: Swift.String, urlRewriter: (Swift.String) -> Swift.String)
   @objc override dynamic public init()
-  @objc deinit
   required public init(from decoder: Swift.Decoder) throws
+  @objc deinit
   public func encode(to encoder: Swift.Encoder) throws
 }
 @objc public protocol MetricsObserver {
@@ -844,15 +844,15 @@ extension Dictionary where Key == Swift.AnyHashable {
     get
   }
   public typealias RawValue = Swift.Int
-  public static var _nsErrorDomain: Swift.String {
-    get
-  }
   public init?(rawValue: Swift.Int)
   public var rawValue: Swift.Int {
     get
   }
+  public static var _nsErrorDomain: Swift.String {
+    get
+  }
 }
-@objc @objcMembers public class VideoFrameResender : ObjectiveC.NSObject {
+@objc @_hasMissingDesignatedInitializers @objcMembers public class VideoFrameResender : ObjectiveC.NSObject {
   @objc override dynamic public init()
   @objc deinit
 }
@@ -892,7 +892,7 @@ extension Dictionary where Key == Swift.AnyHashable {
 }
 extension VideoClient : AmazonChimeSDK.VideoClientProtocol {
 }
-@objc @objcMembers public class DefaultEventAnalyticsController : ObjectiveC.NSObject, AmazonChimeSDK.EventAnalyticsController {
+@objc @_hasMissingDesignatedInitializers @objcMembers public class DefaultEventAnalyticsController : ObjectiveC.NSObject, AmazonChimeSDK.EventAnalyticsController {
   @objc public func publishEvent(name: AmazonChimeSDK.EventName, attributes: [Swift.AnyHashable : Any])
   @objc public func getMeetingHistory() -> [AmazonChimeSDK.MeetingHistoryEvent]
   @objc public func publishEvent(name: AmazonChimeSDK.EventName)
@@ -939,11 +939,11 @@ extension VideoClient : AmazonChimeSDK.VideoClientProtocol {
     get
   }
   public typealias RawValue = Swift.Int
-  public static var _nsErrorDomain: Swift.String {
-    get
-  }
   public init?(rawValue: Swift.Int)
   public var rawValue: Swift.Int {
+    get
+  }
+  public static var _nsErrorDomain: Swift.String {
     get
   }
 }
@@ -996,12 +996,12 @@ extension VideoClient : AmazonChimeSDK.VideoClientProtocol {
 }
 extension AVAudioSession : AmazonChimeSDK.AudioSession {
 }
-@objc @objcMembers public class Versioning : ObjectiveC.NSObject {
+@objc @_inheritsConvenienceInitializers @objcMembers public class Versioning : ObjectiveC.NSObject {
   @objc public static func sdkVersion() -> Swift.String
-  @objc override dynamic public init()
   @objc deinit
+  @objc override dynamic public init()
 }
-@objc @objcMembers public class DefaultMeetingStatsCollector : ObjectiveC.NSObject, AmazonChimeSDK.MeetingStatsCollector {
+@objc @_hasMissingDesignatedInitializers @objcMembers public class DefaultMeetingStatsCollector : ObjectiveC.NSObject, AmazonChimeSDK.MeetingStatsCollector {
   @objc public func getMeetingHistory() -> [AmazonChimeSDK.MeetingHistoryEvent]
   @objc public func getMeetingStats() -> [Swift.AnyHashable : Any]
   @objc public func addMeetingHistoryEvent(historyEventName: AmazonChimeSDK.MeetingHistoryEventName, timestampMs: Swift.Int64)
@@ -1198,6 +1198,7 @@ extension AmazonChimeSDK.CaptureSourceError : Swift.RawRepresentable {}
 extension AmazonChimeSDK.VideoRotation : Swift.Equatable {}
 extension AmazonChimeSDK.VideoRotation : Swift.Hashable {}
 extension AmazonChimeSDK.VideoRotation : Swift.RawRepresentable {}
+extension AmazonChimeSDK.AttendeeStatus : Swift.Equatable {}
 extension AmazonChimeSDK.AttendeeStatus : Swift.Hashable {}
 extension AmazonChimeSDK.AttendeeStatus : Swift.RawRepresentable {}
 extension AmazonChimeSDK.EventName : Swift.Equatable {}
@@ -1206,21 +1207,36 @@ extension AmazonChimeSDK.EventName : Swift.RawRepresentable {}
 extension AmazonChimeSDK.LogLevel : Swift.Equatable {}
 extension AmazonChimeSDK.LogLevel : Swift.Hashable {}
 extension AmazonChimeSDK.LogLevel : Swift.RawRepresentable {}
+extension AmazonChimeSDK.MediaDeviceType : Swift.Equatable {}
 extension AmazonChimeSDK.MediaDeviceType : Swift.Hashable {}
 extension AmazonChimeSDK.MediaDeviceType : Swift.RawRepresentable {}
 extension AmazonChimeSDK.VideoContentHint : Swift.Equatable {}
 extension AmazonChimeSDK.VideoContentHint : Swift.Hashable {}
 extension AmazonChimeSDK.VideoContentHint : Swift.RawRepresentable {}
+extension AmazonChimeSDK.MediaError : Swift.Equatable {}
+extension AmazonChimeSDK.MediaError : Swift.Hashable {}
+extension AmazonChimeSDK.MediaError : Swift.RawRepresentable {}
+extension AmazonChimeSDK.MeetingSessionStatusCode : Swift.Equatable {}
 extension AmazonChimeSDK.MeetingSessionStatusCode : Swift.Hashable {}
 extension AmazonChimeSDK.MeetingSessionStatusCode : Swift.RawRepresentable {}
+extension AmazonChimeSDK.ObservableMetric : Swift.Equatable {}
 extension AmazonChimeSDK.ObservableMetric : Swift.Hashable {}
 extension AmazonChimeSDK.ObservableMetric : Swift.RawRepresentable {}
+extension AmazonChimeSDK.PermissionError : Swift.Equatable {}
+extension AmazonChimeSDK.PermissionError : Swift.Hashable {}
+extension AmazonChimeSDK.PermissionError : Swift.RawRepresentable {}
+extension AmazonChimeSDK.SendDataMessageError : Swift.Equatable {}
+extension AmazonChimeSDK.SendDataMessageError : Swift.Hashable {}
+extension AmazonChimeSDK.SendDataMessageError : Swift.RawRepresentable {}
+extension AmazonChimeSDK.SignalStrength : Swift.Equatable {}
 extension AmazonChimeSDK.SignalStrength : Swift.Hashable {}
 extension AmazonChimeSDK.SignalStrength : Swift.RawRepresentable {}
+extension AmazonChimeSDK.VideoPauseState : Swift.Equatable {}
 extension AmazonChimeSDK.VideoPauseState : Swift.Hashable {}
 extension AmazonChimeSDK.VideoPauseState : Swift.RawRepresentable {}
 extension AmazonChimeSDK.ContentShareStatusCode : Swift.Equatable {}
 extension AmazonChimeSDK.ContentShareStatusCode : Swift.Hashable {}
 extension AmazonChimeSDK.ContentShareStatusCode : Swift.RawRepresentable {}
+extension AmazonChimeSDK.VolumeLevel : Swift.Equatable {}
 extension AmazonChimeSDK.VolumeLevel : Swift.Hashable {}
 extension AmazonChimeSDK.VolumeLevel : Swift.RawRepresentable {}

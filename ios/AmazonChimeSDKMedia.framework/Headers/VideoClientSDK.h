@@ -39,6 +39,7 @@
 @property (nonatomic, assign) BOOL isExcludeSelfContentInIndex;
 @property (nonatomic, assign) NSString* audioHostUrl;
 @property (nonatomic, assign) BOOL isUsingInbandTurnCreds;
+@property (nonatomic, assign) BOOL isDisablingSimulcastP2P;
 @end
 
 @interface DataMessageInternal : NSObject
